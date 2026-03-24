@@ -1,0 +1,156 @@
+#!/bin/bash
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+#
+# This source code is licensed under the MIT license found in the
+# LICENSE file in the root directory of this source tree.
+#
+# Unified build script for FAISS-GPU wheel with CUDA 13.2
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BUILD_OUTPUT_DIR="${SCRIPT_DIR}/build_output"
+
+# Color codes for terminal output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+log_info() {
+    echo -e "${GREEN}[INFO]${NC} $@"
+}
+
+log_warn() {
+    echo -e "${YELLOW}[WARN]${NC} $@"
+}
+
+log_error() {
+    echo -e "${RED}[ERROR]${NC} $@"
+}
+
+# Check prerequisites
+check_prerequisites() {
+    log_info "Checking prerequisites..."
+    
+    # Check CUDA
+    if ! command -v nvcc &> /dev/null; then
+        log_error "CUDA not found. Please install CUDA 13.2 or set CUDA_HOME."
+        exit 1
+    fi
+    
+    cuda_version=$(nvcc --version | grep "release" | awk '{print $(NF)}')
+    log_info "Found CUDA version: $cuda_version"
+    
+    # Check Python
+    if ! command -v python &> /dev/null && ! command -v python3 &> /dev/null; then
+        log_error "Python not found"
+        exit 1
+    fi
+    
+    python_version=$(python --version 2>&1 || python3 --version 2>&1)
+    log_info "Found Python: $python_version"
+    
+    # Check required tools
+    for tool in cmake make swig; do
+        if ! command -v $tool &> /dev/null; then
+            log_error "$tool not found. Please install it."
+            exit 1
+        fi
+    done
+    
+    log_info "All prerequisites satisfied."
+}
+
+# Show configuration
+show_config() {
+    log_info "Build Configuration:"
+    echo "  CUDA_HOME: ${CUDA_HOME:-/usr/local/cuda}"
+    echo "  CUDA_ARCHS: ${CUDA_ARCHS:-80;86;89;90;92}"
+    echo "  Python: $(python --version 2>&1 || python3 --version 2>&1)"
+    echo "  Build output: $BUILD_OUTPUT_DIR"
+}
+
+# Build steps
+build_lib() {
+    log_info "Building C++ library (libfaiss)..."
+    bash "${SCRIPT_DIR}/build_lib_cuda132.sh"
+}
+
+build_pkg() {
+    log_info "Building Python package and wheel..."
+    bash "${SCRIPT_DIR}/build_pkg_cuda132.sh"
+}
+
+package_wheel() {
+    log_info "Packaging wheel..."
+    bash "${SCRIPT_DIR}/package_wheel.sh"
+}
+
+# Cleanup
+cleanup() {
+    log_warn "Cleaning up build artifacts..."
+    rm -rf "${SCRIPT_DIR}/_build" "${SCRIPT_DIR}/_build_python"* "${SCRIPT_DIR}/_libfaiss_stage" \
+            "${SCRIPT_DIR}/build" "${SCRIPT_DIR}/faiss/python/build"
+    log_info "Cleanup complete."
+}
+
+# Main build process
+main() {
+    log_info "Starting FAISS-GPU wheel build for CUDA 13.2..."
+    
+    check_prerequisites
+    show_config
+    
+    # Create output directory
+    mkdir -p "$BUILD_OUTPUT_DIR"
+    
+    # Parse arguments
+    case "${1:-all}" in
+        lib)
+            build_lib
+            ;;
+        pkg)
+            build_lib
+            build_pkg
+            ;;
+        wheel)
+            build_lib
+            build_pkg
+            package_wheel
+            ;;
+        all)
+            build_lib
+            build_pkg
+            package_wheel
+            ;;
+        clean)
+            cleanup
+            ;;
+        check)
+            check_prerequisites
+            show_config
+            ;;
+        *)
+            echo "Usage: $0 [lib|pkg|wheel|all|clean|check]"
+            echo "  lib   - Build C++ library only"
+            echo "  pkg   - Build library and Python package"
+            echo "  wheel - Build everything and package wheel"
+            echo "  all   - Same as 'wheel' (default)"
+            echo "  clean - Remove build artifacts"
+            echo "  check - Check prerequisites only"
+            exit 1
+            ;;
+    esac
+    
+    if [[ "${1:-all}" != "check" ]]; then
+        log_info "Build complete!"
+        log_info "Wheel output directory: $BUILD_OUTPUT_DIR"
+        if [[ -f "$BUILD_OUTPUT_DIR"/faiss_gpu*.whl ]]; then
+            log_info "Wheel files:"
+            ls -lh "$BUILD_OUTPUT_DIR"/faiss_gpu*.whl
+        fi
+    fi
+}
+
+main "$@"

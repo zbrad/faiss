@@ -1,0 +1,138 @@
+================================================================================
+FAISS-GPU CUDA 13.2 Wheel Build Setup - File Manifest
+================================================================================
+
+SETUP DOCUMENTATION:
+  ✓ SETUP_COMPLETE.md ..................... This setup summary (start here!)
+  ✓ QUICKSTART.md ......................... Quick start guide (5 minutes)
+  ✓ BUILD_WHEEL_CUDA132.md ............... Complete build documentation
+  ✓ BUILD_MANIFEST.txt ................... This file
+
+BUILD ORCHESTRATION:
+  ✓ build_wheel.sh ....................... Main unified build script
+  ✓ Makefile ............................. Make targets for easy building
+  ✓ verify_environment.py ................ Check build prerequisites
+
+BUILD SCRIPTS:
+  ✓ build_lib_cuda132.sh ................. Build C++ library (libfaiss)
+  ✓ build_pkg_cuda132.sh ................. Build Python package
+  ✓ package_wheel.sh ..................... Package as wheel (.whl)
+  ✓ clean_build.sh ....................... Clean build artifacts
+
+CONFIGURATION:
+  ✓ environment_cuda132_py314.yml ....... Conda environment specification
+
+FAISS SOURCE:
+  ✓ faiss/ ............................... Main source code
+  ✓ CMakeLists.txt ....................... CMake build configuration
+  ✓ README.md ............................ Original FAISS README
+  ✓ INSTALL.md ........................... Original FAISS build guide
+
+================================================================================
+QUICK START COMMANDS
+================================================================================
+
+1. Verify your environment:
+   $ python verify_environment.py
+   $ make check
+
+2. Build the wheel:
+   $ make build
+   (or use: ./build_wheel.sh all)
+
+3. Install the wheel:
+   $ make install-wheel
+   (or: pip install build_output/faiss_gpu-*.whl)
+
+4. For help:
+   $ make help
+
+================================================================================
+CONFIGURATION OPTIONS
+================================================================================
+
+Environment Variables:
+  CUDA_ARCHS ................. GPU architectures (default: 80;86;89;90)
+  CUDA_HOME .................. CUDA installation path
+  FAISS_BUILD_JOBS ........... Parallel build jobs (default: nproc)
+  PYTHON ..................... Python executable (default: python3)
+
+GPU Architecture Codes:
+  70 = Tesla V100
+  75 = RTX 2080, RTX 2060
+  80 = A100, RTX 3090
+  86 = RTX 3080 Ti, RTX 3070
+  89 = RTX 4090, RTX 4080
+  90 = H100 (Hopper)
+
+Example:
+  $ CUDA_ARCHS="80;86;89" make build
+
+================================================================================
+BUILD ARTIFACTS LOCATION
+================================================================================
+
+After a successful build, find your wheel in:
+  ./build_output/faiss_gpu-*.whl
+
+Build directories (created during build, safe to delete):
+  _build/ .......................... C++ build
+  _build_python_*/ ................. Python build
+  _libfaiss_stage/ ................. Staged libraries
+  faiss/python/build/ .............. Python build output
+
+Clean build artifacts with:
+  $ make clean
+  $ ./clean_build.sh
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+See BUILD_WHEEL_CUDA132.md for detailed troubleshooting.
+
+Common issues:
+  - CUDA not found: Set CUDA_HOME=/usr/local/cuda-13.2
+  - Python dev headers: Install python3.14-dev or use conda
+  - Out of memory: Reduce parallel jobs: FAISS_BUILD_JOBS=2
+  - swig not found: Install with conda or apt/package manager
+
+================================================================================
+KEY DOCUMENTATION
+================================================================================
+
+  SETUP_COMPLETE.md ........... Main setup summary
+  QUICKSTART.md ............... Quick 5-minute guide  
+  BUILD_WHEEL_CUDA132.md ...... Complete documentation
+  Makefile .................... Available build targets
+  README.md ................... Original FAISS README
+
+================================================================================
+BUILD TIMELINE
+================================================================================
+
+Typical build time: 10-30 minutes (first time)
+  - Environment setup: 2 minutes
+  - C++ library build: 5-15 minutes
+  - Python package: 3-10 minutes
+  - Wheel packaging: 1-2 minutes
+
+Subsequent builds (cached): 5-10 minutes
+
+================================================================================
+RESOURCES
+================================================================================
+
+FAISS Official: https://github.com/facebookresearch/faiss
+FAISS Wiki: https://github.com/facebookresearch/faiss/wiki
+CUDA 13.2 Docs: https://docs.nvidia.com/cuda/archive/cuda-13-2/
+
+================================================================================
+STATUS: SETUP COMPLETE ✓
+================================================================================
+
+Workspace ready for building FAISS-GPU wheel for CUDA 13.2 and Python 3.14.
+
+Next step: Run 'python verify_environment.py' or 'make check'
+
+================================================================================

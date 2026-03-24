@@ -2,6 +2,8 @@
 
 Faiss is a library for efficient similarity search and clustering of dense vectors. It contains algorithms that search in sets of vectors of any size, up to ones that possibly do not fit in RAM. It also contains supporting code for evaluation and parameter tuning. Faiss is written in C++ with complete wrappers for Python/numpy. Some of the most useful algorithms are implemented on the GPU. It is developed primarily at Meta's [Fundamental AI Research](https://ai.facebook.com/) group.
 
+> **Note:** This repository contains FAISS source code with optimized build scripts for **CUDA 13.2 GPU wheels**. See [QUICKSTART.md](QUICKSTART.md) for building instructions.
+
 ## News
 
 See [CHANGELOG.md](CHANGELOG.md) for detailed information about latest features.
@@ -14,9 +16,120 @@ Some of the methods, like those based on binary vectors and compact quantization
 
 The GPU implementation can accept input from either CPU or GPU memory. On a server with GPUs, the GPU indexes can be used a drop-in replacement for the CPU indexes (e.g., replace `IndexFlatL2` with `GpuIndexFlatL2`) and copies to/from GPU memory are handled automatically. Results will be faster however if both input and output remain resident on the GPU. Both single and multi-GPU usage is supported.
 
+### Supported GPU Architectures for CUDA 13.2 Builds
+
+This build system optimizes for:
+- **Architecture 80** - NVIDIA A100, RTX 3090
+- **Architecture 86** - NVIDIA RTX 3080 Ti, RTX 3070
+- **Architecture 89** - NVIDIA RTX 4090, RTX 4080
+- **Architecture 90** - NVIDIA H100 (Hopper) — **DGX Spark systems**
+- **Architecture 92** - NVIDIA RTX 5090 (Blackwell)
+
+All architectures are included by default. Customize with `CUDA_ARCHS` environment variable.
+
 ## Installing
 
 Faiss comes with precompiled libraries for Anaconda in Python, see [faiss-cpu](https://anaconda.org/pytorch/faiss-cpu), [faiss-gpu](https://anaconda.org/pytorch/faiss-gpu) and [faiss-gpu-cuvs](https://anaconda.org/pytorch/faiss-gpu-cuvs). The library is mostly implemented in C++, the only dependency is a [BLAS](https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms) implementation. Optional GPU support is provided via CUDA or AMD ROCm, and the Python interface is also optional. The backend GPU implementations of NVIDIA [cuVS](https://github.com/rapidsai/cuvs) can also be enabled optionally. It compiles with cmake. See [INSTALL.md](INSTALL.md) for details.
+
+### Building FAISS-GPU for CUDA 13.2
+
+This repository includes build scripts and tooling for creating FAISS-GPU wheels optimized for CUDA 13.2 with Python 3.14. Supports modern GPU architectures including H100 (Hopper), RTX 4090 (Ada), and RTX 5090 (Blackwell).
+
+**Quick Start:**
+```bash
+# Review build configuration
+make check
+
+# Build the wheel
+make build
+
+# Install and test
+make install-wheel
+```
+
+**Key Features:**
+- ✅ Multi-GPU architecture support (80, 86, 89, 90, 92)
+- ✅ Optimized builds with AVX2/AVX512 SIMD variants
+- ✅ DGX Spark (H100 Hopper) optimizations included
+- ✅ Comprehensive build documentation
+- ✅ Environment verification tools
+- ✅ Makefile targets for easy building
+
+**Documentation:**
+- [QUICKSTART.md](QUICKSTART.md) - 5-minute build guide
+- [BUILD_WHEEL_CUDA132.md](BUILD_WHEEL_CUDA132.md) - Complete build documentation
+- [SETUP_COMPLETE.md](SETUP_COMPLETE.md) - Setup overview
+
+**Build Scripts:**
+- `build_wheel.sh` - Unified orchestrator (recommended)
+- `build_lib_cuda132.sh` - Build C++ library
+- `build_pkg_cuda132.sh` - Build Python package  
+- `package_wheel.sh` - Package as wheel
+- `verify_environment.py` - Check prerequisites
+- `Makefile` - Build targets and configuration
+
+#### Build Process Overview
+
+The build system uses a three-stage process:
+
+1. **C++ Library Build** (`build_lib_cuda132.sh`)
+   - Compiles FAISS C++ core with CMake
+   - Generates optimized libraries for configured architectures
+   - Produces `libfaiss.so`, `libfaiss_avx2.so`, `libfaiss_avx512.so`
+
+2. **Python Bindings** (`build_pkg_cuda132.sh`)
+   - Generates SWIG bindings for Python interface
+   - Builds Python extension modules
+   - Creates `swigfaiss` modules for different optimizations
+
+3. **Wheel Packaging** (`package_wheel.sh`)
+   - Packages Python module as `.whl` distribution
+   - Output to `build_output/faiss_gpu-*.whl`
+
+#### Common Build Commands
+
+**For DGX Spark (H100 Hopper):**
+```bash
+# Build for H100 only
+CUDA_ARCHS="90" make build
+```
+
+**For RTX 4090:**
+```bash
+# Build for RTX 4090 only
+CUDA_ARCHS="89" make build
+```
+
+**For RTX 5090:**
+```bash
+# Build for RTX 5090 (Blackwell)
+CUDA_ARCHS="92" make build
+```
+
+**For Multiple Architectures:**
+```bash
+# Build for Hopper + Blackwell
+CUDA_ARCHS="90;92" make build
+
+# Build all supported (default)
+make build
+```
+
+#### Advanced Customization
+
+```bash
+# Parallel build jobs
+FAISS_BUILD_JOBS=8 make build
+
+# Custom CUDA path
+CUDA_HOME=/opt/cuda-13.2 make build
+
+# Custom Python
+PYTHON=python3.14 make build
+
+# Clean build
+make clean
+```
 
 ## How Faiss works
 
