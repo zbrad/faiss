@@ -15,6 +15,32 @@ conda activate faiss-gpu-cu132-py314
 # ensure: python 3.14, CUDA 13.2, cmake, swig, mkl-devel
 ```
 
+### 1.1 Configure Intel MKL Paths (Required for `build_lib_cuda132.sh`)
+
+If MKL auto-detection does not work, set explicit paths before building.
+
+```bash
+# WSL / Linux-style bash (Windows oneAPI install mounted at /mnt/c)
+export MKL_ROOT="/mnt/c/Program Files (x86)/Intel/oneAPI/mkl/2025.3"
+export MKL_LIB="$MKL_ROOT/lib/mkl_rt.lib"
+export MKL_INCLUDE_DIR="$MKL_ROOT/include"
+ls -l "$MKL_LIB" "$MKL_INCLUDE_DIR/mkl.h"
+```
+
+```bash
+# Git Bash on Windows (MSYS path style)
+export MKL_ROOT="/c/Program Files (x86)/Intel/oneAPI/mkl/2025.3"
+export MKL_LIB="$MKL_ROOT/lib/mkl_rt.lib"
+export MKL_INCLUDE_DIR="$MKL_ROOT/include"
+ls -l "$MKL_LIB" "$MKL_INCLUDE_DIR/mkl.h"
+```
+
+Find installed MKL runtime from `cmd`:
+
+```cmd
+where /r "C:\Program Files (x86)\Intel\oneAPI\mkl" mkl_rt*
+```
+
 ### 2. Build the Wheel
 
 ```bash
@@ -133,6 +159,15 @@ FAISS_BUILD_JOBS=4 ./build_wheel.sh
 **Memory issues during build:**
 - Close other applications
 - Use: `FAISS_BUILD_JOBS=2 ./build_wheel.sh`
+
+**"MKL runtime library not found":**
+- Ensure shell path style matches environment:
+	- WSL/Linux bash: `/mnt/c/...`
+	- Git Bash: `/c/...`
+- Confirm both files exist:
+	- `$MKL_LIB`
+	- `$MKL_INCLUDE_DIR/mkl.h`
+- Prefer versioned MKL path (`.../mkl/2025.3`) if `latest` path/symlink is not resolved
 
 ## 📖 Full Documentation
 

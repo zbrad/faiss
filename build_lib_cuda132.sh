@@ -17,12 +17,35 @@ CUDA_ARCHS="${CUDA_ARCHS:-75;80;86;89;90;100;120}"
 PYTHON="${PYTHON:-python3}"
 BUILD_DIR="_build"
 
+# In Git Bash on Windows, auto-detect common conda locations when CONDA_PREFIX is unset.
+if [ -z "${CONDA_PREFIX:-}" ]; then
+    user_home="${USERPROFILE:-/c/Users/$USERNAME}"
+    for candidate in \
+        "$user_home/miniconda3" \
+        "$user_home/anaconda3" \
+        "/c/ProgramData/miniconda3" \
+        "/c/ProgramData/Anaconda3"
+    do
+        if [ -d "$candidate" ]; then
+            CONDA_PREFIX="$candidate"
+            export CONDA_PREFIX
+            break
+        fi
+    done
+fi
+
+MKL_ROOT="${MKL_ROOT:-${CONDA_PREFIX:-/opt/intel/oneapi/mkl/latest}}"
+MKL_INCLUDE_DIR="${MKL_INCLUDE_DIR:-$MKL_ROOT/include}"
+MKL_LIB="${MKL_LIB:-$MKL_ROOT/lib/intel64/libmkl_rt.so}"
+
 echo "========================================="
 echo "Building FAISS C++ Library (libfaiss)"
 echo "========================================="
 echo "CUDA_HOME: $CUDA_HOME"
 echo "CUDA_ARCHS: $CUDA_ARCHS"
 echo "Python: $PYTHON"
+echo "CONDA_PREFIX: ${CONDA_PREFIX:-<unset>}"
+echo "MKL_ROOT: $MKL_ROOT"
 echo ""
 
 # Set up environment
@@ -36,6 +59,41 @@ if ! command -v nvcc &> /dev/null; then
     exit 1
 fi
 echo "CUDA compiler: $(nvcc --version | grep -E 'release|version')"
+
+# Verify MKL
+if [ ! -f "$MKL_LIB" ]; then
+    # Linux/oneAPI and conda fallbacks
+    for candidate in \
+        "$MKL_ROOT/lib/libmkl_rt.so" \
+        "$MKL_ROOT/lib/intel64/libmkl_rt.so" \
+        "$MKL_ROOT/libmkl_rt.so" \
+        "$MKL_ROOT/lib/libmkl_rt.dylib" \
+        "$MKL_ROOT/lib/intel64/libmkl_rt.dylib" \
+        "$MKL_ROOT/Library/lib/mkl_rt.lib"
+    do
+        if [ -f "$candidate" ]; then
+            MKL_LIB="$candidate"
+            break
+        fi
+    done
+fi
+if [ ! -f "$MKL_LIB" ]; then
+    echo "ERROR: MKL runtime library not found."
+    echo "Checked MKL_LIB=$MKL_LIB and fallback paths under MKL_ROOT=$MKL_ROOT"
+    echo "Set MKL_ROOT or MKL_LIB to your Intel MKL installation."
+    exit 1
+fi
+
+if [ ! -d "$MKL_INCLUDE_DIR" ]; then
+    if [ -d "$MKL_ROOT/Library/include" ]; then
+        MKL_INCLUDE_DIR="$MKL_ROOT/Library/include"
+    fi
+fi
+if [ ! -d "$MKL_INCLUDE_DIR" ]; then
+    echo "ERROR: MKL include directory not found at: $MKL_INCLUDE_DIR"
+    echo "Set MKL_INCLUDE_DIR to your Intel MKL include path."
+    exit 1
+fi
 
 # CMake configuration
 echo "[2/3] Configuring with CMake..."
@@ -51,10 +109,15 @@ cmake -B "$BUILD_DIR" \
     -DFAISS_ENABLE_PYTHON=OFF \
     -DCMAKE_CUDA_COMPILER="$CUDA_HOME/bin/nvcc" \
     -DCMAKE_CUDA_TOOLKIT_INCLUDE_DIR="$CUDA_HOME/include" \
-    -DBLA_VENDOR=OpenBLAS \
+    -DBLA_VENDOR=Intel10_64lp \
+    -DMKL_ROOT="$MKL_ROOT" \
+    -DMKL_INCLUDE_DIR="$MKL_INCLUDE_DIR" \
+    -DMKL_LIBRARIES="$MKL_LIB" \
+    -DBLAS_LIBRARIES="$MKL_LIB" \
+    -DLAPACK_LIBRARIES="$MKL_LIB" \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_PREFIX_PATH="$CUDA_HOME" \
+    -DCMAKE_PREFIX_PATH="$CUDA_HOME;$MKL_ROOT" \
     .
 
 # Build

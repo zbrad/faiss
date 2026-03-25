@@ -46,6 +46,19 @@ Faiss comes with precompiled libraries for Anaconda in Python, see [faiss-cpu](h
 
 This repository includes build scripts and tooling for creating FAISS-GPU wheels optimized for CUDA 13.2 with Python 3.14. Supports modern GPU architectures including H100 (Hopper), RTX 4090 (Ada), and RTX 5090 (Blackwell).
 
+**Required dependency:** Intel MKL is required for `build_lib_cuda132.sh` (OpenBLAS is not used by this CUDA 13.2 build flow).
+
+**Intel MKL source/install links:**
+- [Intel oneAPI Base Toolkit Download](https://www.intel.com/content/www/us/en/developer/tools/oneapi/base-toolkit-download.html)
+- [Intel oneAPI MKL Documentation](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html)
+
+**Windows (PowerShell) install example:**
+```powershell
+winget install --id Intel.oneAPI.BaseToolkit -e --accept-source-agreements --accept-package-agreements
+```
+
+After installation, set `MKL_ROOT`, `MKL_LIB`, and `MKL_INCLUDE_DIR` if auto-detection does not find your installation.
+
 **Quick Start:**
 ```bash
 # Review build configuration

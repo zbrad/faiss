@@ -53,6 +53,33 @@ export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 export CUDA_ARCHS="75;80;86;89;90;100;120"  # Adjust for your GPU architectures
 ```
 
+### 1.1 Set Intel MKL Paths (Required)
+
+`build_lib_cuda132.sh` requires Intel MKL (`mkl_rt`) and may need explicit paths when auto-detection does not match your shell environment.
+
+**WSL/Linux bash accessing Windows oneAPI install:**
+```bash
+export MKL_ROOT="/mnt/c/Program Files (x86)/Intel/oneAPI/mkl/2025.3"
+export MKL_LIB="$MKL_ROOT/lib/mkl_rt.lib"
+export MKL_INCLUDE_DIR="$MKL_ROOT/include"
+ls -l "$MKL_LIB" "$MKL_INCLUDE_DIR/mkl.h"
+```
+
+**Git Bash on Windows (MSYS path style):**
+```bash
+export MKL_ROOT="/c/Program Files (x86)/Intel/oneAPI/mkl/2025.3"
+export MKL_LIB="$MKL_ROOT/lib/mkl_rt.lib"
+export MKL_INCLUDE_DIR="$MKL_ROOT/include"
+ls -l "$MKL_LIB" "$MKL_INCLUDE_DIR/mkl.h"
+```
+
+**Find your exact installed MKL runtime from CMD:**
+```cmd
+where /r "C:\Program Files (x86)\Intel\oneAPI\mkl" mkl_rt*
+```
+
+Use the versioned MKL directory (for example `.../mkl/2025.3`) if `latest` symlink/path resolution behaves differently between shells.
+
 Available CUDA architectures (CUDA 13.2 supported):
 - `75`: Turing (RTX 2080, RTX 2060)
 - `80`: Ampere (A100, RTX 3090)
@@ -144,6 +171,13 @@ During build, you can customize:
 
 **"swig: command not found"**
 - Install: `conda install swig=4.0` or `sudo apt install swig`
+
+**"MKL runtime library not found"**
+- Verify the shell path style matches your environment:
+  - WSL/Linux bash: `/mnt/c/...`
+  - Git Bash: `/c/...`
+- Confirm files exist: `mkl_rt.lib` and `include/mkl.h`
+- Use a versioned MKL path (e.g. `.../mkl/2025.3`) instead of `latest` if needed
 
 ## Performance Notes
 
