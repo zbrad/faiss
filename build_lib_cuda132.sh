@@ -51,7 +51,7 @@ cmake -B "$BUILD_DIR" \
     -DFAISS_ENABLE_PYTHON=OFF \
     -DCMAKE_CUDA_COMPILER="$CUDA_HOME/bin/nvcc" \
     -DCMAKE_CUDA_TOOLKIT_INCLUDE_DIR="$CUDA_HOME/include" \
-    -DBLA_VENDOR=Intel10_64lp \
+    -DBLA_VENDOR=OpenBLAS \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_PREFIX_PATH="$CUDA_HOME" \
@@ -67,6 +67,10 @@ make -C "$BUILD_DIR" -j"$num_jobs" faiss faiss_avx2 faiss_avx512 faiss_c faiss_c
 # Stage libraries for next build step
 mkdir -p _libfaiss_stage/
 cmake --install "$BUILD_DIR" --prefix _libfaiss_stage/ --config Release
+
+# cmake --install omits avx512 variants; copy them manually
+cp -f "$BUILD_DIR/faiss/libfaiss_avx512.so" _libfaiss_stage/lib/ 2>/dev/null || true
+cp -f "$BUILD_DIR/c_api/libfaiss_c_avx512.so" _libfaiss_stage/lib/ 2>/dev/null || true
 
 echo ""
 echo "========================================="

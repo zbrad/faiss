@@ -47,11 +47,29 @@ fi
 cp "$wheel_file" "../$BUILD_OUTPUT_DIR/"
 wheel_basename=$(basename "$wheel_file")
 
+# Repair wheel: bundle libfaiss*.so and fix RPATHs, exclude CUDA/OpenBLAS system libs
+cd ..
+if command -v auditwheel &> /dev/null; then
+    echo "[3/3] Repairing wheel with auditwheel..."
+    export LD_LIBRARY_PATH="${SCRIPT_DIR}/_libfaiss_stage/lib:${CUDA_HOME}/lib64:$LD_LIBRARY_PATH"
+    auditwheel repair "$BUILD_OUTPUT_DIR/$wheel_basename" \
+        --exclude libcudart.so.13 \
+        --exclude libcublas.so.13 \
+        --exclude libcublasLt.so.13 \
+        --exclude libopenblas.so.0 \
+        -w "$BUILD_OUTPUT_DIR/repaired/" 2>&1 | grep -E "INFO|WARNING|ERROR|Fixed"
+    repaired_wheel=$(find "$BUILD_OUTPUT_DIR/repaired/" -name "*.whl" | head -1)
+    wheel_basename=$(basename "$repaired_wheel")
+else
+    echo "  (auditwheel not found - skipping wheel repair)"
+    repaired_wheel="$BUILD_OUTPUT_DIR/$wheel_basename"
+fi
+
 echo ""
 echo "========================================="
 echo "✓ Wheel packaging complete"
 echo "========================================="
-echo "Wheel: $BUILD_OUTPUT_DIR/$wheel_basename"
+echo "Wheel: $BUILD_OUTPUT_DIR/repaired/$wheel_basename"
 echo ""
 echo "To install, run:"
-echo "  pip install $BUILD_OUTPUT_DIR/$wheel_basename"
+echo "  pip install $BUILD_OUTPUT_DIR/repaired/$wheel_basename"

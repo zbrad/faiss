@@ -62,6 +62,8 @@ echo "[2/4] Configuring Python build with CMake..."
 rm -rf "$BUILD_DIR"
 cmake -B "$BUILD_DIR" \
     -Dfaiss_ROOT=_libfaiss_stage/ \
+    -DCMAKE_LIBRARY_PATH="${SCRIPT_DIR}/_libfaiss_stage/lib" \
+    -DCMAKE_SHARED_LINKER_FLAGS="-L${SCRIPT_DIR}/_libfaiss_stage/lib" \
     -DFAISS_ENABLE_GPU=ON \
     -DFAISS_ENABLE_CUVS=OFF \
     -DFAISS_OPT_LEVEL=avx2 \
