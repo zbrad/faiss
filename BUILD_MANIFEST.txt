@@ -123,14 +123,21 @@ GPU SUPPORT SUMMARY
 ================================================================================
 
 Supported NVIDIA GPU Generations (CUDA 13.2):
-  ✓ Volta (70)      - V100 - Older generation
-  ✓ Turing (75)     - RTX 2080/2060 - Older generation
-  ✓ Ampere (80/86)  - A100, RTX 3090, RTX 3080 Ti - Current stable
-✓ Hopper (90)     - H100 - High-end data center
-✓ Blackwell (92)  - RTX 5090, GB10 (DGX Spark) - Latest generation
+  ✓ Ampere (80/86)   - A100, RTX 3090, RTX 3080 Ti - Current stable
+  ✓ Ada (89)         - RTX 4090, RTX 4080 - Modern generation
+  ✓ Hopper (90)      - H100 - High-end data center
+  ✓ Blackwell (92)   - RTX 5090, GB10 (DGX Spark) - Latest generation
+
+NOT SUPPORTED (CUDA 13.2+):
+  ✗ Volta (70)       - NVIDIA removed support in CUDA 13.0
+  ✗ Turing (75)      - NVIDIA removed support in CUDA 13.0
+  → For older GPUs, use CUDA 12.x builds or earlier FAISS versions
 
 Default build includes all supported architectures (80, 86, 89, 90, 92)
 Customize with CUDA_ARCHS environment variable as needed.
+
+See NVIDIA CUDA 13.2 Release Notes for architecture deprecation details:
+https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#deprecated-architectures
 
 ================================================================================
 RESOURCES
