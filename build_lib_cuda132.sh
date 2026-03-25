@@ -13,7 +13,7 @@ cd "$SCRIPT_DIR"
 
 # Environment setup
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
-CUDA_ARCHS="${CUDA_ARCHS:-80;86;89;90;92}"
+CUDA_ARCHS="${CUDA_ARCHS:-75;80;86;89;90;100;120}"
 PYTHON="${PYTHON:-python3}"
 BUILD_DIR="_build"
 

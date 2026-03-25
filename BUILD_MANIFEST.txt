@@ -52,20 +52,22 @@ CONFIGURATION OPTIONS
 ================================================================================
 
 Environment Variables:
-  CUDA_ARCHS ................. GPU architectures (default: 80;86;89;90;92)
+  CUDA_ARCHS ................. GPU architectures (default: 75;80;86;89;90;100;120)
   CUDA_HOME .................. CUDA installation path
   FAISS_BUILD_JOBS ........... Parallel build jobs (default: nproc)
   PYTHON ..................... Python executable (default: python3)
 
-GPU Architecture Codes (CUDA 13.2 Optimized Architectures):
+GPU Architecture Codes (CUDA 13.2 Supported Architectures):
+  75 = RTX 2080, RTX 2060 (Turing)
   80 = A100, RTX 3090 (Ampere)
   86 = RTX 3080 Ti, RTX 3070 (Ampere)
   89 = RTX 4090, RTX 4080 (Ada)
   90 = H100 (Hopper)
-  92 = RTX 5090, GB10 (Blackwell) - DGX Spark, latest generation
+ 100 = GB10 Grace Blackwell (DGX Spark)
+ 120 = RTX 5090 (Blackwell)
 
 Example:
-  $ CUDA_ARCHS="80;86;89;90;92" make build
+  $ CUDA_ARCHS="75;80;86;89;90;100;120" make build
 
 ================================================================================
 BUILD ARTIFACTS LOCATION
@@ -123,17 +125,20 @@ GPU SUPPORT SUMMARY
 ================================================================================
 
 Supported NVIDIA GPU Generations (CUDA 13.2):
+  ✓ Turing (75)      - RTX 2080/2060
   ✓ Ampere (80/86)   - A100, RTX 3090, RTX 3080 Ti - Current stable
   ✓ Ada (89)         - RTX 4090, RTX 4080 - Modern generation
   ✓ Hopper (90)      - H100 - High-end data center
-  ✓ Blackwell (92)   - RTX 5090, GB10 (DGX Spark) - Latest generation
+  ✓ Blackwell (100)  - GB10 Grace Blackwell (DGX Spark)
+  ✓ Blackwell (120)  - RTX 5090
 
 NOT SUPPORTED (CUDA 13.2+):
   ✗ Volta (70)       - NVIDIA removed support in CUDA 13.0
-  ✗ Turing (75)      - NVIDIA removed support in CUDA 13.0
+  ✗ Pascal (60/61)   - NVIDIA removed support in CUDA 13.0
+  ✗ Maxwell (50/52)  - NVIDIA removed support in CUDA 13.0
   → For older GPUs, use CUDA 12.x builds or earlier FAISS versions
 
-Default build includes all supported architectures (80, 86, 89, 90, 92)
+Default build includes all supported architectures (75, 80, 86, 89, 90, 100, 120)
 Customize with CUDA_ARCHS environment variable as needed.
 
 See NVIDIA CUDA 13.2 Release Notes for architecture deprecation details:

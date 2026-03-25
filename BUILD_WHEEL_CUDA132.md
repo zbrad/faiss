@@ -50,15 +50,17 @@ Ensure the following are installed on your system:
 export CUDA_HOME=/usr/local/cuda-13.2  # Adjust if using different path
 export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
-export CUDA_ARCHS="80;86;89;90;92"  # Adjust for your GPU architectures
+export CUDA_ARCHS="75;80;86;89;90;100;120"  # Adjust for your GPU architectures
 ```
 
 Available CUDA architectures (CUDA 13.2 supported):
+- `75`: Turing (RTX 2080, RTX 2060)
 - `80`: Ampere (A100, RTX 3090)
 - `86`: Ampere (RTX 3080 Ti, RTX 3070)
 - `89`: Ada Lovelace (RTX 4090, RTX 4080)
 - `90`: Hopper (H100)
-- `92`: Blackwell (RTX 5090, GB10 / DGX Spark)
+- `100`: Blackwell (GB10 Grace Blackwell / DGX Spark)
+- `120`: Blackwell (RTX 5090)
 
 > **Note:** Volta (70) and Turing (75) are **not supported** in CUDA 13.2 — NVIDIA removed
 > offline compilation and library support in CUDA 13.0. For older GPUs, use CUDA 12.x.
@@ -108,10 +110,11 @@ During build, you can customize:
 
 - **GPU Architectures**: Set `CUDA_ARCHS` environment variable (space/semicolon separated)
   - Examples:
-    - `CUDA_ARCHS="92"` - RTX 5090 (Blackwell) only
+    - `CUDA_ARCHS="120"` - RTX 5090 (Blackwell) only
+    - `CUDA_ARCHS="100"` - DGX Spark GB10 (Blackwell) only
     - `CUDA_ARCHS="90"` - H100 (Hopper) only  
-    - `CUDA_ARCHS="90;92"` - Hopper + Blackwell
-    - `CUDA_ARCHS="80;86;89;90;92"` - All supported (default)
+    - `CUDA_ARCHS="90;100;120"` - Hopper + Blackwell
+    - `CUDA_ARCHS="75;80;86;89;90;100;120"` - All supported (default)
 
 - **Optimization Level**: 
   - `generic`: Baseline optimization

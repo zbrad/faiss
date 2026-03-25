@@ -22,15 +22,17 @@ The GPU implementation can accept input from either CPU or GPU memory. On a serv
 This build is optimized for Compute Capability 8.0 and higher (Ampere generation and newer). NVIDIA's CUDA 13.2 toolkit no longer provides optimized libraries for pre-Ampere architectures (Volta 7.0, Turing 7.5). This build focuses on modern, actively supported GPU generations.
 
 **Supported Architectures:**
+- **Architecture 75** - NVIDIA RTX 2080, RTX 2060 (Turing)
 - **Architecture 80** - NVIDIA A100, RTX 3090 (Ampere)
 - **Architecture 86** - NVIDIA RTX 3080 Ti, RTX 3070 (Ampere)
 - **Architecture 89** - NVIDIA RTX 4090, RTX 4080 (Ada)
 - **Architecture 90** - NVIDIA H100 (Hopper)
-- **Architecture 92** - NVIDIA RTX 5090, GB10 (Blackwell) — **DGX Spark systems**
+- **Architecture 100** - NVIDIA GB10 Grace Blackwell — **DGX Spark systems**
+- **Architecture 120** - NVIDIA RTX 5090 (Blackwell)
 
 All architectures are included by default. Customize with `CUDA_ARCHS` environment variable.
 
-**Note:** Volta (70) and Turing (75) architectures are not supported in this CUDA 13.2 build. NVIDIA removed offline compilation and library support for these architectures in CUDA 13.0. For older GPUs, use CUDA 12.x builds or compile with older FAISS versions.
+**Note:** Volta (70) and below (Maxwell 5.x, Pascal 6.x) are not supported in CUDA 13.2 — removed in CUDA 13.0. Turing (75) remains supported.
 
 **References:**
 - [CUDA 13.2 Toolkit Release Notes](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/) - Official NVIDIA documentation
@@ -57,7 +59,7 @@ make install-wheel
 ```
 
 **Key Features:**
-- ✅ Multi-GPU architecture support (80, 86, 89, 90, 92)
+- ✅ Multi-GPU architecture support (75, 80, 86, 89, 90, 100, 120)
 - ✅ Optimized builds with AVX2/AVX512 SIMD variants
 - ✅ DGX Spark (GB10 Blackwell) optimizations included
 - ✅ Comprehensive build documentation
@@ -99,8 +101,8 @@ The build system uses a three-stage process:
 
 **For DGX Spark (GB10 Blackwell):**
 ```bash
-# Build for GB10 Blackwell only
-CUDA_ARCHS="92" make build
+# Build for GB10 Blackwell only (DGX Spark)
+CUDA_ARCHS="100" make build
 ```
 
 **For RTX 4090:**
@@ -112,13 +114,13 @@ CUDA_ARCHS="89" make build
 **For RTX 5090:**
 ```bash
 # Build for RTX 5090 (Blackwell)
-CUDA_ARCHS="92" make build
+CUDA_ARCHS="120" make build
 ```
 
 **For Multiple Architectures:**
 ```bash
 # Build for Hopper + Blackwell
-CUDA_ARCHS="90;92" make build
+CUDA_ARCHS="90;100;120" make build
 
 # Build all supported (default)
 make build

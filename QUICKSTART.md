@@ -57,10 +57,13 @@ python -c "import faiss; print(f'FAISS version: {faiss.__version__}'); print(f'G
 CUDA_ARCHS="90" ./build_wheel.sh
 
 # Build for Blackwell (RTX 5090) only
-CUDA_ARCHS="92" ./build_wheel.sh
+CUDA_ARCHS="120" ./build_wheel.sh
 
-# Build for Hopper + Blackwell (H100, RTX 5090)
-CUDA_ARCHS="90;92" ./build_wheel.sh
+# Build for DGX Spark (GB10 Blackwell) only
+CUDA_ARCHS="100" ./build_wheel.sh
+
+# Build for Hopper + Blackwell (H100, RTX 5090, DGX Spark)
+CUDA_ARCHS="90;100;120" ./build_wheel.sh
 
 # Build for RTX 4090 (Ada)
 CUDA_ARCHS="89" ./build_wheel.sh
@@ -79,15 +82,17 @@ Set `CUDA_ARCHS` environment variable before building:
 
 | Architecture | GPU Examples |
 |-------------|--------------|
+| `75` | RTX 2080, RTX 2060 (Turing) |
 | `80` | A100, RTX 3090 (Ampere) |
 | `86` | RTX 3080 Ti, RTX 3070 (Ampere) |
 | `89` | RTX 4090, RTX 4080 (Ada) |
 | `90` | H100 (Hopper) |
-| `92` | RTX 5090, GB10 (Blackwell) |
+| `100` | GB10 Grace Blackwell (DGX Spark) |
+| `120` | RTX 5090 (Blackwell) |
 
 ```bash
 # Build for multiple architectures
-CUDA_ARCHS="80;86;89;90;92" ./build_wheel.sh
+CUDA_ARCHS="75;80;86;89;90;100;120" ./build_wheel.sh
 ```
 
 ## 📁 Directory Structure After Build

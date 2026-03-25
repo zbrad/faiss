@@ -2,7 +2,7 @@
 
 # FAISS GPU Wheel Build Makefile for CUDA 13.2
 
-CUDA_ARCHS ?= 80;86;89;90
+CUDA_ARCHS ?= 75;80;86;89;90;100;120
 CUDA_HOME ?= /usr/local/cuda
 FAISS_BUILD_JOBS ?= $(shell nproc)
 PYTHON ?= python3
@@ -22,7 +22,7 @@ help:
 	@echo "  make test              - Run tests"
 	@echo ""
 	@echo "Environment Variables:"
-	@echo "  CUDA_ARCHS             - GPU architectures (default: 80;86;89;90;92)"
+	@echo "  CUDA_ARCHS             - GPU architectures (default: 75;80;86;89;90;100;120)"
 	@echo "  CUDA_HOME              - CUDA installation path"
 	@echo "  FAISS_BUILD_JOBS       - Parallel build jobs"
 	@echo "  PYTHON                 - Python executable"
@@ -75,13 +75,13 @@ env-info:
 	@echo "  Python version:    $$($(PYTHON) --version 2>&1)"
 	@echo ""
 	@echo "  GPU architectures:"
-	@echo "    70 = Tesla V100"
-	@echo "    75 = RTX 2080, RTX 2060"
-	@echo "    80 = A100, RTX 3090"
-	@echo "    86 = RTX 3080 Ti, RTX 3070"
-	@echo "    89 = RTX 4090, RTX 4080"
+	@echo "    75 = RTX 2080, RTX 2060 (Turing)"
+	@echo "    80 = A100, RTX 3090 (Ampere)"
+	@echo "    86 = RTX 3080 Ti, RTX 3070 (Ampere)"
+	@echo "    89 = RTX 4090, RTX 4080 (Ada)"
 	@echo "    90 = H100 (Hopper)"
-	@echo "    92 = RTX 5090 (Blackwell)"
+	@echo "   100 = DGX Spark GB10 (Blackwell)"
+	@echo "   120 = RTX 5090 (Blackwell)"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
 test:
