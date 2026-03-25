@@ -25,8 +25,8 @@ This build is optimized for Compute Capability 8.0 and higher (Ampere generation
 - **Architecture 80** - NVIDIA A100, RTX 3090 (Ampere)
 - **Architecture 86** - NVIDIA RTX 3080 Ti, RTX 3070 (Ampere)
 - **Architecture 89** - NVIDIA RTX 4090, RTX 4080 (Ada)
-- **Architecture 90** - NVIDIA H100 (Hopper) — **DGX Spark systems**
-- **Architecture 92** - NVIDIA RTX 5090 (Blackwell)
+- **Architecture 90** - NVIDIA H100 (Hopper)
+- **Architecture 92** - NVIDIA RTX 5090, GB10 (Blackwell) — **DGX Spark systems**
 
 All architectures are included by default. Customize with `CUDA_ARCHS` environment variable.
 
@@ -59,7 +59,7 @@ make install-wheel
 **Key Features:**
 - ✅ Multi-GPU architecture support (80, 86, 89, 90, 92)
 - ✅ Optimized builds with AVX2/AVX512 SIMD variants
-- ✅ DGX Spark (H100 Hopper) optimizations included
+- ✅ DGX Spark (GB10 Blackwell) optimizations included
 - ✅ Comprehensive build documentation
 - ✅ Environment verification tools
 - ✅ Makefile targets for easy building
@@ -97,10 +97,10 @@ The build system uses a three-stage process:
 
 #### Common Build Commands
 
-**For DGX Spark (H100 Hopper):**
+**For DGX Spark (GB10 Blackwell):**
 ```bash
-# Build for H100 only
-CUDA_ARCHS="90" make build
+# Build for GB10 Blackwell only
+CUDA_ARCHS="92" make build
 ```
 
 **For RTX 4090:**

@@ -83,7 +83,7 @@ Set `CUDA_ARCHS` environment variable before building:
 | `86` | RTX 3080 Ti, RTX 3070 (Ampere) |
 | `89` | RTX 4090, RTX 4080 (Ada) |
 | `90` | H100 (Hopper) |
-| `92` | RTX 5090 (Blackwell) |
+| `92` | RTX 5090, GB10 (Blackwell) |
 
 ```bash
 # Build for multiple architectures

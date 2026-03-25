@@ -61,8 +61,8 @@ GPU Architecture Codes (CUDA 13.2 Optimized Architectures):
   80 = A100, RTX 3090 (Ampere)
   86 = RTX 3080 Ti, RTX 3070 (Ampere)
   89 = RTX 4090, RTX 4080 (Ada)
-  90 = H100 (Hopper) - DGX Spark systems
-  92 = RTX 5090 (Blackwell) - Latest generation
+  90 = H100 (Hopper)
+  92 = RTX 5090, GB10 (Blackwell) - DGX Spark, latest generation
 
 Example:
   $ CUDA_ARCHS="80;86;89;90;92" make build
@@ -126,8 +126,8 @@ Supported NVIDIA GPU Generations (CUDA 13.2):
   ✓ Volta (70)      - V100 - Older generation
   ✓ Turing (75)     - RTX 2080/2060 - Older generation
   ✓ Ampere (80/86)  - A100, RTX 3090, RTX 3080 Ti - Current stable
-  ✓ Hopper (90)     - H100, DGX Spark - Latest high-end
-  ✓ Blackwell (92)  - RTX 5090 - Latest consumer GPU
+✓ Hopper (90)     - H100 - High-end data center
+✓ Blackwell (92)  - RTX 5090, GB10 (DGX Spark) - Latest generation
 
 Default build includes all supported architectures (80, 86, 89, 90, 92)
 Customize with CUDA_ARCHS environment variable as needed.
