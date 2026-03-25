@@ -52,7 +52,7 @@ CONFIGURATION OPTIONS
 ================================================================================
 
 Environment Variables:
-  CUDA_ARCHS ................. GPU architectures (default: 80;86;89;90)
+  CUDA_ARCHS ................. GPU architectures (default: 80;86;89;90;92)
   CUDA_HOME .................. CUDA installation path
   FAISS_BUILD_JOBS ........... Parallel build jobs (default: nproc)
   PYTHON ..................... Python executable (default: python3)
@@ -63,10 +63,11 @@ GPU Architecture Codes:
   80 = A100, RTX 3090
   86 = RTX 3080 Ti, RTX 3070
   89 = RTX 4090, RTX 4080
-  90 = H100 (Hopper)
+  90 = H100 (Hopper) - DGX Spark systems
+  92 = RTX 5090 (Blackwell) - Latest generation
 
 Example:
-  $ CUDA_ARCHS="80;86;89" make build
+  $ CUDA_ARCHS="80;86;89;90;92" make build
 
 ================================================================================
 BUILD ARTIFACTS LOCATION
@@ -120,12 +121,27 @@ Typical build time: 10-30 minutes (first time)
 Subsequent builds (cached): 5-10 minutes
 
 ================================================================================
+GPU SUPPORT SUMMARY
+================================================================================
+
+Supported NVIDIA GPU Generations (CUDA 13.2):
+  ✓ Volta (70)      - V100 - Older generation
+  ✓ Turing (75)     - RTX 2080/2060 - Older generation
+  ✓ Ampere (80/86)  - A100, RTX 3090, RTX 3080 Ti - Current stable
+  ✓ Hopper (90)     - H100, DGX Spark - Latest high-end
+  ✓ Blackwell (92)  - RTX 5090 - Latest consumer GPU
+
+Default build includes all supported architectures (80, 86, 89, 90, 92)
+Customize with CUDA_ARCHS environment variable as needed.
+
+================================================================================
 RESOURCES
 ================================================================================
 
 FAISS Official: https://github.com/facebookresearch/faiss
 FAISS Wiki: https://github.com/facebookresearch/faiss/wiki
 CUDA 13.2 Docs: https://docs.nvidia.com/cuda/archive/cuda-13-2/
+Blackwell Architecture: https://developer.nvidia.com/cuda/blackwell
 
 ================================================================================
 STATUS: SETUP COMPLETE ✓
