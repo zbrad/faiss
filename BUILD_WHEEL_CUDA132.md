@@ -53,14 +53,16 @@ export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 export CUDA_ARCHS="80;86;89;90;92"  # Adjust for your GPU architectures
 ```
 
-Available CUDA architectures:
-- `70`: Volta (V100)
-- `75`: Turing (RTX 2080, RTX 2060)
+Available CUDA architectures (CUDA 13.2 supported):
 - `80`: Ampere (A100, RTX 3090)
 - `86`: Ampere (RTX 3080 Ti, RTX 3070)
 - `89`: Ada Lovelace (RTX 4090, RTX 4080)
 - `90`: Hopper (H100)
-- `92`: Blackwell (RTX 5090)
+- `92`: Blackwell (RTX 5090, GB10 / DGX Spark)
+
+> **Note:** Volta (70) and Turing (75) are **not supported** in CUDA 13.2 — NVIDIA removed
+> offline compilation and library support in CUDA 13.0. For older GPUs, use CUDA 12.x.
+> See: [CUDA 13.2 Release Notes - Deprecated Architectures](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#deprecated-architectures)
 
 ### 2. Build the Wheel
 
