@@ -18,14 +18,19 @@ The GPU implementation can accept input from either CPU or GPU memory. On a serv
 
 ### Supported GPU Architectures for CUDA 13.2 Builds
 
-This build system optimizes for:
-- **Architecture 80** - NVIDIA A100, RTX 3090
-- **Architecture 86** - NVIDIA RTX 3080 Ti, RTX 3070
-- **Architecture 89** - NVIDIA RTX 4090, RTX 4080
+**CUDA 13.2 Architecture Requirements:**
+This build is optimized for Compute Capability 8.0 and higher (Ampere generation and newer). NVIDIA's CUDA 13.2 toolkit no longer provides optimized libraries for pre-Ampere architectures (Volta 7.0, Turing 7.5). This build focuses on modern, actively supported GPU generations.
+
+**Supported Architectures:**
+- **Architecture 80** - NVIDIA A100, RTX 3090 (Ampere)
+- **Architecture 86** - NVIDIA RTX 3080 Ti, RTX 3070 (Ampere)
+- **Architecture 89** - NVIDIA RTX 4090, RTX 4080 (Ada)
 - **Architecture 90** - NVIDIA H100 (Hopper) — **DGX Spark systems**
 - **Architecture 92** - NVIDIA RTX 5090 (Blackwell)
 
 All architectures are included by default. Customize with `CUDA_ARCHS` environment variable.
+
+**Note:** Volta (70) and Turing (75) architectures are not supported in this CUDA 13.2 build. For older GPUs, use CUDA 12.x builds or compile with older FAISS versions.
 
 ## Installing
 

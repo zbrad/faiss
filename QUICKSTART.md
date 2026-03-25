@@ -79,11 +79,9 @@ Set `CUDA_ARCHS` environment variable before building:
 
 | Architecture | GPU Examples |
 |-------------|--------------|
-| `70` | Tesla V100 |
-| `75` | RTX 2080, RTX 2060 |
-| `80` | A100, RTX 3090 |
-| `86` | RTX 3080 Ti, RTX 3070 |
-| `89` | RTX 4090, RTX 4080 |
+| `80` | A100, RTX 3090 (Ampere) |
+| `86` | RTX 3080 Ti, RTX 3070 (Ampere) |
+| `89` | RTX 4090, RTX 4080 (Ada) |
 | `90` | H100 (Hopper) |
 | `92` | RTX 5090 (Blackwell) |
 
