@@ -30,7 +30,11 @@ This build is optimized for Compute Capability 8.0 and higher (Ampere generation
 
 All architectures are included by default. Customize with `CUDA_ARCHS` environment variable.
 
-**Note:** Volta (70) and Turing (75) architectures are not supported in this CUDA 13.2 build. For older GPUs, use CUDA 12.x builds or compile with older FAISS versions.
+**Note:** Volta (70) and Turing (75) architectures are not supported in this CUDA 13.2 build. NVIDIA removed offline compilation and library support for these architectures in CUDA 13.0. For older GPUs, use CUDA 12.x builds or compile with older FAISS versions.
+
+**References:**
+- [CUDA 13.2 Toolkit Release Notes](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/) - Official NVIDIA documentation
+- [Deprecated Architectures in CUDA 13.0+](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#deprecated-architectures) - Details on Maxwell, Pascal, and Volta removal
 
 ## Installing
 
