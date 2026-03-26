@@ -1,0 +1,8 @@
+{
+  "terminal.integrated.profiles.windows": {
+    "My Project Shell": {
+      "path": "wsl.exe"
+    }
+  },
+  "terminal.integrated.defaultProfile.windows": "My Project Shell"
+}

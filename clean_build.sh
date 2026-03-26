@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # Clean build artifacts while preserving the wheel
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
