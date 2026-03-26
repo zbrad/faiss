@@ -6,3 +6,11 @@ See:
 - docs/branches/faiss-gpu-cu132/QUICKSTART.md
 - docs/branches/faiss-gpu-cu132/BUILD_WHEEL_CUDA132.md
 - docs/branches/faiss-gpu-cu132/SETUP_COMPLETE.md
+
+## Release Information
+
+**📦 Binary Release Documentation**: See [RELEASE_NOTES.md](RELEASE_NOTES.md) for complete GPU architecture table, feature list, and installation instructions.
+
+## Test Results
+
+See [TEST_RESULTS.md](TEST_RESULTS.md) for complete validation report (1,118 tests passed, 100% success rate)

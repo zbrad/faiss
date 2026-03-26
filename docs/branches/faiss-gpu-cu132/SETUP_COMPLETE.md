@@ -14,6 +14,8 @@ Your FAISS-GPU CUDA 13.2 wheel build workspace is ready!
 #### 📜 Documentation
 - **[QUICKSTART.md](QUICKSTART.md)** - Quick start guide (5 mins)
 - **[BUILD_WHEEL_CUDA132.md](BUILD_WHEEL_CUDA132.md)** - Comprehensive build documentation  
+- **[RELEASE_NOTES.md](../../RELEASE_NOTES.md)** - Binary release description with GPU table
+- **[TEST_RESULTS.md](../../TEST_RESULTS.md)** - Test results and validation report
 - **SETUP_COMPLETE.md** - This file
 
 #### 🔨 Build Scripts

@@ -119,15 +119,15 @@ wsl -e bash scripts/wsl/verify.sh
 
 Set `CUDA_ARCHS` environment variable before building:
 
-| Architecture | GPU Examples |
-|-------------|--------------|
-| `75` | RTX 2080, RTX 2060 (Turing) |
-| `80` | A100, RTX 3090 (Ampere) |
-| `86` | RTX 3080 Ti, RTX 3070 (Ampere) |
-| `89` | RTX 4090, RTX 4080 (Ada) |
-| `90` | H100 (Hopper) |
-| `100` | GB10 Grace Blackwell (DGX Spark) |
-| `120` | RTX 5090 (Blackwell) |
+| CUDA Code | SM Code | GPU Examples |
+|-----------|---------|------------------|
+| `75` | sm_75 | RTX 2080, RTX 2060 (Turing) |
+| `80` | sm_80 | A100, RTX 3090 (Ampere) |
+| `86` | sm_86 | RTX 3080 Ti, RTX 3070 (Ampere) |
+| `89` | sm_89 | RTX 4090, RTX 4080 (Ada) |
+| `90` | sm_90 | H100 (Hopper) |
+| `100` | sm_100 | GB10 Grace Blackwell (DGX Spark) |
+| `120` | sm_120 | RTX 5090 (Blackwell) |
 
 ```powershell
 # Build for multiple architectures
