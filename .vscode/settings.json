@@ -4,5 +4,8 @@
       "path": "wsl.exe"
     }
   },
-  "terminal.integrated.defaultProfile.windows": "My Project Shell"
+  "terminal.integrated.defaultProfile.windows": "My Project Shell",
+  "terminal.integrated.automationProfile.windows": {
+    "path": "wsl.exe"
+  }
 }
