@@ -59,17 +59,16 @@ winget install --id Intel.oneAPI.BaseToolkit -e --accept-source-agreements --acc
 
 After installation, set `MKL_ROOT`, `MKL_LIB`, and `MKL_INCLUDE_DIR` if auto-detection does not find your installation.
 
-**Quick Start:**
-```bash
-# Review build configuration
-make check
+**Quick Start (WSL 2 on Windows):**
+```powershell
+# Full build — C++ library + Python bindings + wheel
+wsl -e bash scripts/wsl/build.sh
 
-# Build the wheel
-make build
-
-# Install and test
-make install-wheel
+# Install wheel and run CPU + GPU verification
+wsl -e bash scripts/wsl/verify.sh --install
 ```
+
+See [QUICKSTART.md](docs/branches/faiss-gpu-cu132/QUICKSTART.md) for prerequisites, per-architecture builds, and troubleshooting.
 
 **Key Features:**
 - ✅ Multi-GPU architecture support (75, 80, 86, 89, 90, 100, 120)
@@ -80,14 +79,16 @@ make install-wheel
 - ✅ Makefile targets for easy building
 
 **Documentation:**
-- [QUICKSTART.md](QUICKSTART.md) - 5-minute build guide
+- [QUICKSTART.md](docs/branches/faiss-gpu-cu132/QUICKSTART.md) - Build guide (WSL + scripts)
 - [BUILD_WHEEL_CUDA132.md](BUILD_WHEEL_CUDA132.md) - Complete build documentation
 - [SETUP_COMPLETE.md](SETUP_COMPLETE.md) - Setup overview
 
 **Build Scripts:**
-- `build_wheel.sh` - Unified orchestrator (recommended)
+- `scripts/wsl/build.sh` - WSL full build launcher (recommended)
+- `scripts/wsl/verify.sh` - Install + CPU/GPU verification
+- `scripts/wsl/env.sh` - Environment setup (source before manual steps)
 - `build_lib_cuda132.sh` - Build C++ library
-- `build_pkg_cuda132.sh` - Build Python package  
+- `build_pkg_cuda132.sh` - Build Python package
 - `package_wheel.sh` - Package as wheel
 - `verify_environment.py` - Check prerequisites
 - `Makefile` - Build targets and configuration
@@ -227,3 +228,11 @@ You can report bugs, ask questions, etc.
 Faiss is MIT-licensed, refer to the [LICENSE file](https://github.com/facebookresearch/faiss/blob/main/LICENSE) in the top level directory.
 
 Copyright © Meta Platforms, Inc.
+
+## Branch-Specific CUDA 13.2 Docs
+
+For faiss-gpu-cu132 branch build instructions (CUDA 13.2 + MKL), see:
+
+- docs/branches/faiss-gpu-cu132/QUICKSTART.md
+- docs/branches/faiss-gpu-cu132/BUILD_WHEEL_CUDA132.md
+- docs/branches/faiss-gpu-cu132/SETUP_COMPLETE.md

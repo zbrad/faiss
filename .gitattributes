@@ -1,0 +1,5 @@
+# Force LF line endings for shell scripts and Makefiles on Windows
+*.sh        text eol=lf
+Makefile    text eol=lf
+*.mk        text eol=lf
+wsl_build.sh text eol=lf

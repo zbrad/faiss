@@ -2,10 +2,13 @@
 
 # FAISS GPU Wheel Build Makefile for CUDA 13.2
 
-CUDA_ARCHS ?= 75;80;86;89;90;100;120
+CUDA_ARCHS ?= 75\;80\;86\;89\;90\;100\;120
 CUDA_HOME ?= /usr/local/cuda
 FAISS_BUILD_JOBS ?= $(shell nproc)
 PYTHON ?= python3
+# Wheel variant: appended to the package name as faiss-{FAISS_VARIANT}.
+# Examples: gpu-cu132  gpu-cu128  gpu  cpu  (empty = canonical "faiss")
+FAISS_VARIANT ?= gpu-cu132
 
 help:
 	@echo "FAISS GPU Wheel Build (CUDA 13.2)"
@@ -32,20 +35,22 @@ build: build-lib build-pkg wheel
 	@ls -lh build_output/*.whl 2>/dev/null || echo "No wheel found"
 
 build-lib:
-	@export CUDA_ARCHS=$(CUDA_ARCHS); \
+	@export CUDA_ARCHS="$(CUDA_ARCHS)"; \
 	export CUDA_HOME=$(CUDA_HOME); \
 	export FAISS_BUILD_JOBS=$(FAISS_BUILD_JOBS); \
 	export PYTHON=$(PYTHON); \
 	bash build_lib_cuda132.sh
 
 build-pkg: build-lib
-	@export CUDA_HOME=$(CUDA_HOME); \
+	@export CUDA_ARCHS="$(CUDA_ARCHS)"; \
+	export CUDA_HOME=$(CUDA_HOME); \
 	export FAISS_BUILD_JOBS=$(FAISS_BUILD_JOBS); \
 	export PYTHON=$(PYTHON); \
 	bash build_pkg_cuda132.sh
 
 wheel: build-pkg
 	@export PYTHON=$(PYTHON); \
+	export FAISS_VARIANT=$(FAISS_VARIANT); \
 	bash package_wheel.sh
 
 check:

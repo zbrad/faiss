@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 #
 # This source code is licensed under the MIT license found in the
@@ -13,12 +13,17 @@ cd "$SCRIPT_DIR"
 
 PYTHON="${PYTHON:-python3}"
 BUILD_OUTPUT_DIR="build_output"
+# Optional variant suffix (e.g. gpu-cu132, cpu, gpu-cu128).
+# Passed through to setup.py via FAISS_VARIANT env var.
+FAISS_VARIANT="${FAISS_VARIANT:-}"
 PY_VER=$(${PYTHON} -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
 BUILD_DIR="_build_python_${PY_VER}"
 
 echo "========================================="
 echo "Packaging FAISS Wheel"
 echo "========================================="
+_wheel_name="faiss${FAISS_VARIANT:+-$FAISS_VARIANT}"
+echo "Package name   : $_wheel_name"
 echo "Output directory: $BUILD_OUTPUT_DIR"
 echo ""
 
@@ -51,7 +56,7 @@ wheel_basename=$(basename "$wheel_file")
 cd ..
 if command -v auditwheel &> /dev/null; then
     echo "[3/3] Repairing wheel with auditwheel..."
-    export LD_LIBRARY_PATH="${SCRIPT_DIR}/_libfaiss_stage/lib:${CUDA_HOME}/lib64:$LD_LIBRARY_PATH"
+    export LD_LIBRARY_PATH="${SCRIPT_DIR}/_libfaiss_stage/lib:/opt/intel/oneapi/mkl/latest/lib:${CUDA_HOME}/lib64:$LD_LIBRARY_PATH"
     auditwheel repair "$BUILD_OUTPUT_DIR/$wheel_basename" \
         --exclude libcudart.so.13 \
         --exclude libcublas.so.13 \

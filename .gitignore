@@ -27,6 +27,7 @@ faiss/python/swigfaiss_sve.swig
 /_build_python_*/
 /_libfaiss_stage/
 /build_output/
+/build.log
 
 # Python package build outputs
 /dist/

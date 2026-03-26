@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 #
 # This source code is licensed under the MIT license found in the
@@ -52,9 +52,9 @@ fi
 echo "✓ All prerequisites found"
 echo ""
 
-# Set up environment
+# Set up environment (WSL: put CUDA on PATH for nvcc and headers)
 export PATH="$CUDA_HOME/bin:$PATH"
-export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="$CUDA_HOME/lib64:/opt/intel/oneapi/mkl/latest/lib:$LD_LIBRARY_PATH"
 export CPATH="$CUDA_HOME/include:$CPATH"
 
 # Configure with CMake

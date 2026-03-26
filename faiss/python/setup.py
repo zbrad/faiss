@@ -112,8 +112,17 @@ code for evaluation and parameter tuning. Faiss is written in C++ with
 complete wrappers for Python/numpy. Some of the most useful algorithms
 are implemented on the GPU. It is developed by Facebook AI Research.
 """
+
+# Allow the wheel to be published under a variant name, e.g.:
+#   FAISS_VARIANT=gpu-cu132   → faiss-gpu-cu132
+#   FAISS_VARIANT=cpu          → faiss-cpu
+#   FAISS_VARIANT=gpu-cu128   → faiss-gpu-cu128
+# Omit / leave empty for the canonical upstream name "faiss".
+_variant = os.environ.get("FAISS_VARIANT", "").strip()
+_package_name = f"faiss-{_variant}" if _variant else "faiss"
+
 setup(
-    name="faiss",
+    name=_package_name,
     version="1.14.1",
     description="A library for efficient similarity search and clustering of dense vectors",
     long_description=long_description,

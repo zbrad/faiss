@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 #
 # This source code is licensed under the MIT license found in the
@@ -17,8 +17,12 @@ CUDA_ARCHS="${CUDA_ARCHS:-75;80;86;89;90;100;120}"
 PYTHON="${PYTHON:-python3}"
 BUILD_DIR="_build"
 
-# In Git Bash on Windows, auto-detect common conda locations when CONDA_PREFIX is unset.
-if [ -z "${CONDA_PREFIX:-}" ]; then
+# WSL: ensure CUDA is on PATH
+export PATH="$CUDA_HOME/bin:$PATH"
+export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
+
+# Conda auto-detect (Windows/Git Bash only — skip on Linux/WSL)
+if [[ "$OSTYPE" != "linux-gnu"* ]] && [ -z "${CONDA_PREFIX:-}" ]; then
     user_home="${USERPROFILE:-/c/Users/$USERNAME}"
     for candidate in \
         "$user_home/miniconda3" \
@@ -34,9 +38,9 @@ if [ -z "${CONDA_PREFIX:-}" ]; then
     done
 fi
 
-MKL_ROOT="${MKL_ROOT:-${CONDA_PREFIX:-/opt/intel/oneapi/mkl/latest}}"
+MKL_ROOT="${MKL_ROOT:-/opt/intel/oneapi/mkl/latest}"
 MKL_INCLUDE_DIR="${MKL_INCLUDE_DIR:-$MKL_ROOT/include}"
-MKL_LIB="${MKL_LIB:-$MKL_ROOT/lib/intel64/libmkl_rt.so}"
+MKL_LIB="${MKL_LIB:-$MKL_ROOT/lib/libmkl_rt.so}"
 
 echo "========================================="
 echo "Building FAISS C++ Library (libfaiss)"
@@ -48,9 +52,7 @@ echo "CONDA_PREFIX: ${CONDA_PREFIX:-<unset>}"
 echo "MKL_ROOT: $MKL_ROOT"
 echo ""
 
-# Set up environment
-export PATH="$CUDA_HOME/bin:$PATH"
-export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
+# Set up environment (PATH already set above)
 
 # Verify CUDA
 echo "[1/3] Verifying CUDA installation..."
