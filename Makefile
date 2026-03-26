@@ -1,4 +1,4 @@
-.PHONY: help check build build-lib build-pkg wheel clean env-create env-info test
+.PHONY: help check build build-lib build-pkg wheel wheel-only clean env-create env-info test
 
 # FAISS GPU Wheel Build Makefile for CUDA 13.2
 
@@ -17,7 +17,8 @@ help:
 	@echo "  make build             - Full build (lib + pkg + wheel)"
 	@echo "  make build-lib         - Build C++ library only"
 	@echo "  make build-pkg         - Build library and Python package"
-	@echo "  make wheel             - Package wheel"
+	@echo "  make wheel             - Package wheel (full build chain)"
+	@echo "  make wheel-only        - Repackage wheel from existing .so artifacts"
 	@echo "  make check             - Check prerequisites"
 	@echo "  make clean             - Remove build artifacts"
 	@echo "  make env-create        - Create conda environment"
@@ -49,6 +50,11 @@ build-pkg: build-lib
 	bash build_pkg_cuda132.sh
 
 wheel: build-pkg
+	@export PYTHON=$(PYTHON); \
+	export FAISS_VARIANT=$(FAISS_VARIANT); \
+	bash package_wheel.sh
+
+wheel-only:
 	@export PYTHON=$(PYTHON); \
 	export FAISS_VARIANT=$(FAISS_VARIANT); \
 	bash package_wheel.sh
