@@ -43,7 +43,7 @@ References were updated across:
 
 - `Makefile` targets now call `gpu-cu132/*` scripts
 - `.github/workflows/create-gpu-release.yml` now reads `gpu-cu132/RELEASE_NOTES.md`
-- `scripts/wsl/build.sh` now normalizes CRLF for `gpu-cu132/*` scripts
+- `gpu-cu132/wsl/build.sh` now normalizes CRLF for `gpu-cu132/*` scripts
 - Root and branch docs now reference `gpu-cu132/*` file locations
 - Moved scripts now resolve repository root correctly via `FAISS_ROOT`
 
@@ -51,7 +51,7 @@ References were updated across:
 
 When reviewing this branch, prioritize:
 
-1. Build execution path correctness from `Makefile` and `scripts/wsl/*.sh`
+1. Build execution path correctness from `Makefile` and `gpu-cu132/wsl/*.sh`
 2. Release workflow behavior for tag-triggered releases
 3. Documentation command correctness after path changes
 4. Wheel output location consistency (`build_output/`)

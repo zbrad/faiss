@@ -2,7 +2,7 @@
 # Clean build artifacts while preserving the wheel
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FAISS_ROOT="${FAISS_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+FAISS_ROOT="${FAISS_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 cd "$FAISS_ROOT"
 
 echo "Cleaning build artifacts..."

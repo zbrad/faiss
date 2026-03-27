@@ -2,8 +2,8 @@
 
 This setup guide is branch-specific for faiss-gpu-cu132:
 
-- docs/branches/faiss-gpu-cu132/SETUP_COMPLETE.md
-- docs/branches/faiss-gpu-cu132/QUICKSTART.md
+- docs/SETUP_COMPLETE.md
+- docs/QUICKSTART.md
 
 ## Documentation
 

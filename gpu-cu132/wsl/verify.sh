@@ -1,9 +1,9 @@
 #!/bin/bash
 # Verify the installed faiss-gpu-cu132 wheel works (CPU + GPU).
 # Usage (from PowerShell):
-#   wsl -e bash scripts/wsl/verify.sh
+#   wsl -e bash gpu-cu132/wsl/verify.sh
 # To install first, pass --install:
-#   wsl -e bash scripts/wsl/verify.sh --install
+#   wsl -e bash gpu-cu132/wsl/verify.sh --install
 
 set -euo pipefail
 

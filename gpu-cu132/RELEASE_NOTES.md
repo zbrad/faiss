@@ -212,7 +212,7 @@ gpu_index = faiss.index_cpu_to_gpu(res, 0, index, co)
 ## Documentation
 
 - **[QUICKSTART.md](QUICKSTART.md)** - 5-minute quick start
-- **[BUILD_WHEEL_CUDA132.md](docs/branches/faiss-gpu-cu132/BUILD_WHEEL_CUDA132.md)** - Complete build guide
+- **[BUILD_WHEEL_CUDA132.md](docs/BUILD_WHEEL_CUDA132.md)** - Complete build guide
 - **[TEST_RESULTS.md](TEST_RESULTS.md)** - Detailed test report
 - **[Official FAISS Wiki](https://github.com/facebookresearch/faiss/wiki)** - FAISS documentation
 
@@ -244,7 +244,7 @@ print(f"GPU count: {faiss.get_num_gpus()}")
 ```
 
 ### Build from source (if needed)
-See [BUILD_WHEEL_CUDA132.md](docs/branches/faiss-gpu-cu132/BUILD_WHEEL_CUDA132.md)
+See [BUILD_WHEEL_CUDA132.md](docs/BUILD_WHEEL_CUDA132.md)
 
 ---
 

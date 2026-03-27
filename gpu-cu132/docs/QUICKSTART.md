@@ -29,24 +29,24 @@ ls /opt/intel/oneapi/mkl/latest/lib/libmkl_rt.so
 
 ```bash
 # Inside WSL, from the repo root:
-source scripts/wsl/env.sh
+source gpu-cu132/wsl/env.sh
 ```
 
 Or set overrides before sourcing:
 ```bash
-CUDA_ARCHS="89;90" source scripts/wsl/env.sh   # Ada + Hopper only
+CUDA_ARCHS="89;90" source gpu-cu132/wsl/env.sh   # Ada + Hopper only
 ```
 
 ### 2. Build the wheel
 
 ```powershell
 # From PowerShell (recommended):
-wsl -e bash scripts/wsl/build.sh
+wsl -e bash gpu-cu132/wsl/build.sh
 ```
 
 ```bash
 # Or from inside WSL:
-bash scripts/wsl/build.sh
+bash gpu-cu132/wsl/build.sh
 ```
 
 Build log is tee'd to `/tmp/faiss_build.log`.
@@ -55,10 +55,10 @@ Build log is tee'd to `/tmp/faiss_build.log`.
 
 ```powershell
 # Install wheel + run CPU/GPU checks:
-wsl -e bash scripts/wsl/verify.sh --install
+wsl -e bash gpu-cu132/wsl/verify.sh --install
 
 # Re-run checks without reinstalling:
-wsl -e bash scripts/wsl/verify.sh
+wsl -e bash gpu-cu132/wsl/verify.sh
 ```
 
 Expected output:
@@ -72,47 +72,47 @@ Expected output:
 
 ## 📋 Build Scripts
 
-### WSL helper scripts (`scripts/wsl/`)
+### WSL helper scripts (`gpu-cu132/wsl/`)
 
 | Script | Purpose | Usage |
 |---|---|---|
-| `scripts/wsl/env.sh` | Set CUDA/MKL/FAISS env vars | `source scripts/wsl/env.sh` |
-| `scripts/wsl/build.sh` | Full build: lib → SWIG → wheel | `wsl -e bash scripts/wsl/build.sh` |
-| `scripts/wsl/verify.sh` | Import + CPU + GPU sanity check | `wsl -e bash scripts/wsl/verify.sh` |
+| `gpu-cu132/wsl/env.sh` | Set CUDA/MKL/FAISS env vars | `source gpu-cu132/wsl/env.sh` |
+| `gpu-cu132/wsl/build.sh` | Full build: lib → SWIG → wheel | `wsl -e bash gpu-cu132/wsl/build.sh` |
+| `gpu-cu132/wsl/verify.sh` | Import + CPU + GPU sanity check | `wsl -e bash gpu-cu132/wsl/verify.sh` |
 
 ### Core build scripts (called by the above)
 
 | Script | Purpose |
 |---|---|
-| `gpu-cu132/build_lib_cuda132.sh` | Build C++ library (`libfaiss*.so`) via CMake |
-| `gpu-cu132/build_pkg_cuda132.sh` | Build Python SWIG bindings (`_swigfaiss*.so`) |
-| `gpu-cu132/package_wheel.sh` | Create `.whl` from built artifacts |
-| `gpu-cu132/clean_build.sh` | Remove all build directories and artifacts |
+| `gpu-cu132/scripts/build_lib_cuda132.sh` | Build C++ library (`libfaiss*.so`) via CMake |
+| `gpu-cu132/scripts/build_pkg_cuda132.sh` | Build Python SWIG bindings (`_swigfaiss*.so`) |
+| `gpu-cu132/scripts/package_wheel.sh` | Create `.whl` from built artifacts |
+| `gpu-cu132/scripts/clean_build.sh` | Remove all build directories and artifacts |
 | `Makefile` | Orchestrates all stages — `make build` runs everything |
 
 ## 🔧 Common Commands
 
 ```powershell
 # Full build (all 7 architectures)
-wsl -e bash scripts/wsl/build.sh
+wsl -e bash gpu-cu132/wsl/build.sh
 
 # Build for your GPU arch only (faster)
-wsl -e bash -c "CUDA_ARCHS='89' bash /mnt/f/GitHub/faiss/scripts/wsl/build.sh"   # RTX 4090 (Ada)
-wsl -e bash -c "CUDA_ARCHS='90' bash /mnt/f/GitHub/faiss/scripts/wsl/build.sh"   # H100 (Hopper)
-wsl -e bash -c "CUDA_ARCHS='86' bash /mnt/f/GitHub/faiss/scripts/wsl/build.sh"   # RTX 3080 Ti (Ampere)
-wsl -e bash -c "CUDA_ARCHS='90;100;120' bash /mnt/f/GitHub/faiss/scripts/wsl/build.sh"  # Hopper + Blackwell
+wsl -e bash -c "CUDA_ARCHS='89' bash /mnt/f/GitHub/faiss/gpu-cu132/wsl/build.sh"   # RTX 4090 (Ada)
+wsl -e bash -c "CUDA_ARCHS='90' bash /mnt/f/GitHub/faiss/gpu-cu132/wsl/build.sh"   # H100 (Hopper)
+wsl -e bash -c "CUDA_ARCHS='86' bash /mnt/f/GitHub/faiss/gpu-cu132/wsl/build.sh"   # RTX 3080 Ti (Ampere)
+wsl -e bash -c "CUDA_ARCHS='90;100;120' bash /mnt/f/GitHub/faiss/gpu-cu132/wsl/build.sh"  # Hopper + Blackwell
 
 # Parallel jobs
-wsl -e bash -c "FAISS_BUILD_JOBS=16 bash /mnt/f/GitHub/faiss/scripts/wsl/build.sh"
+wsl -e bash -c "FAISS_BUILD_JOBS=16 bash /mnt/f/GitHub/faiss/gpu-cu132/wsl/build.sh"
 
 # Clean and rebuild
-wsl -e bash -c "bash /mnt/f/GitHub/faiss/gpu-cu132/clean_build.sh && bash /mnt/f/GitHub/faiss/scripts/wsl/build.sh"
+wsl -e bash -c "bash /mnt/f/GitHub/faiss/gpu-cu132/scripts/clean_build.sh && bash /mnt/f/GitHub/faiss/gpu-cu132/wsl/build.sh"
 
 # Install wheel (use --break-system-packages on Ubuntu 24.04)
 wsl -e bash -c "pip3 install /mnt/f/GitHub/faiss/build_output/faiss_gpu_cu132-*.whl --break-system-packages"
 
 # Verify
-wsl -e bash scripts/wsl/verify.sh
+wsl -e bash gpu-cu132/wsl/verify.sh
 ```
 
 ## 📊 GPU Architecture Codes
@@ -131,7 +131,7 @@ Set `CUDA_ARCHS` environment variable before building:
 
 ```powershell
 # Build for multiple architectures
-wsl -e bash -c "CUDA_ARCHS='75;80;86;89;90;100;120' bash /mnt/f/GitHub/faiss/scripts/wsl/build.sh"
+wsl -e bash -c "CUDA_ARCHS='75;80;86;89;90;100;120' bash /mnt/f/GitHub/faiss/gpu-cu132/wsl/build.sh"
 ```
 
 ## 📁 Directory Structure After Build
@@ -162,7 +162,7 @@ sudo apt install python3-dev
 
 **"make: parallel limits exceeded" / memory issues during build:**
 ```powershell
-wsl -e bash -c "FAISS_BUILD_JOBS=4 bash /mnt/f/GitHub/faiss/scripts/wsl/build.sh"
+wsl -e bash -c "FAISS_BUILD_JOBS=4 bash /mnt/f/GitHub/faiss/gpu-cu132/wsl/build.sh"
 ```
 
 **"MKL runtime library not found":**
@@ -170,7 +170,7 @@ wsl -e bash -c "FAISS_BUILD_JOBS=4 bash /mnt/f/GitHub/faiss/scripts/wsl/build.sh
 - If installed to a non-default path, override before building:
   ```bash
   export MKL_ROOT=/path/to/mkl
-  source scripts/wsl/env.sh
+  source gpu-cu132/wsl/env.sh
   ```
 - Re-install: `sudo apt install --reinstall intel-oneapi-mkl-devel`
 
@@ -189,7 +189,7 @@ See [BUILD_WHEEL_CUDA132.md](BUILD_WHEEL_CUDA132.md) for complete documentation.
 
 ```powershell
 # Quick sanity check (CPU + GPU)
-wsl -e bash scripts/wsl/verify.sh
+wsl -e bash gpu-cu132/wsl/verify.sh
 
 # Full test suite (inside WSL)
 wsl -e bash -c "cd /mnt/f/GitHub/faiss && python3 -m pytest tests/ -x -q"

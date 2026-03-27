@@ -1,7 +1,7 @@
 #!/bin/bash
 # WSL build environment for FAISS GPU CUDA 13.2
 # Source this file before running any build step:
-#   source scripts/wsl/env.sh
+#   source gpu-cu132/wsl/env.sh
 
 export CUDA_HOME=/usr/local/cuda
 export MKL_ROOT=/opt/intel/oneapi/mkl/latest

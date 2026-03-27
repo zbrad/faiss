@@ -6,9 +6,11 @@ CUDA_ARCHS ?= 75\;80\;86\;89\;90\;100\;120
 CUDA_HOME ?= /usr/local/cuda
 FAISS_BUILD_JOBS ?= $(shell nproc)
 PYTHON ?= python3
+GPU_CU132_ROOT ?= gpu-cu132
+GPU_CU132_SCRIPTS ?= $(GPU_CU132_ROOT)/scripts
 # Wheel variant: appended to the package name as faiss-{FAISS_VARIANT}.
 # Examples: gpu-cu132  gpu-cu128  gpu  cpu  (empty = canonical "faiss")
-FAISS_VARIANT ?= gpu-cu132
+FAISS_VARIANT ?=
 
 help:
 	@echo "FAISS GPU Wheel Build (CUDA 13.2)"
@@ -30,6 +32,8 @@ help:
 	@echo "  CUDA_HOME              - CUDA installation path"
 	@echo "  FAISS_BUILD_JOBS       - Parallel build jobs"
 	@echo "  PYTHON                 - Python executable"
+	@echo "  FAISS_VARIANT          - Optional wheel suffix (example: gpu-cu132)"
+	@echo "  GPU_CU132_ROOT         - Optional toolkit root (default: gpu-cu132)"
 
 build: build-lib build-pkg wheel
 	@echo "✓ Full build complete"
@@ -40,37 +44,37 @@ build-lib:
 	export CUDA_HOME=$(CUDA_HOME); \
 	export FAISS_BUILD_JOBS=$(FAISS_BUILD_JOBS); \
 	export PYTHON=$(PYTHON); \
-	bash gpu-cu132/build_lib_cuda132.sh
+	bash $(GPU_CU132_SCRIPTS)/build_lib_cuda132.sh
 
 build-pkg: build-lib
 	@export CUDA_ARCHS="$(CUDA_ARCHS)"; \
 	export CUDA_HOME=$(CUDA_HOME); \
 	export FAISS_BUILD_JOBS=$(FAISS_BUILD_JOBS); \
 	export PYTHON=$(PYTHON); \
-	bash gpu-cu132/build_pkg_cuda132.sh
+	bash $(GPU_CU132_SCRIPTS)/build_pkg_cuda132.sh
 
 wheel: build-pkg
 	@export PYTHON=$(PYTHON); \
 	export FAISS_VARIANT=$(FAISS_VARIANT); \
-	bash gpu-cu132/package_wheel.sh
+	bash $(GPU_CU132_SCRIPTS)/package_wheel.sh
 
 wheel-only:
 	@export PYTHON=$(PYTHON); \
 	export FAISS_VARIANT=$(FAISS_VARIANT); \
-	bash gpu-cu132/package_wheel.sh
+	bash $(GPU_CU132_SCRIPTS)/package_wheel.sh
 
 check:
 	@export CUDA_ARCHS=$(CUDA_ARCHS); \
 	export CUDA_HOME=$(CUDA_HOME); \
 	export PYTHON=$(PYTHON); \
-	bash gpu-cu132/build_wheel.sh check
+	bash $(GPU_CU132_SCRIPTS)/build_wheel.sh check
 
 clean:
-	@bash gpu-cu132/clean_build.sh
+	@bash $(GPU_CU132_SCRIPTS)/clean_build.sh
 
 env-create:
 	@echo "Creating conda environment: faiss-gpu-cu132-py314"
-	conda env create -f gpu-cu132/environment_cuda132_py314.yml
+	conda env create -f $(GPU_CU132_ROOT)/environment_cuda132_py314.yml
 	@echo ""
 	@echo "To activate, run:"
 	@echo "  conda activate faiss-gpu-cu132-py314"
