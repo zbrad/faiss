@@ -9,7 +9,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+FAISS_ROOT="${FAISS_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+cd "$FAISS_ROOT"
 
 # Environment setup
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
@@ -62,8 +63,8 @@ echo "[2/4] Configuring Python build with CMake..."
 rm -rf "$BUILD_DIR"
 cmake -B "$BUILD_DIR" \
     -Dfaiss_ROOT=_libfaiss_stage/ \
-    -DCMAKE_LIBRARY_PATH="${SCRIPT_DIR}/_libfaiss_stage/lib" \
-    -DCMAKE_SHARED_LINKER_FLAGS="-L${SCRIPT_DIR}/_libfaiss_stage/lib" \
+    -DCMAKE_LIBRARY_PATH="${FAISS_ROOT}/_libfaiss_stage/lib" \
+    -DCMAKE_SHARED_LINKER_FLAGS="-L${FAISS_ROOT}/_libfaiss_stage/lib" \
     -DFAISS_ENABLE_GPU=ON \
     -DFAISS_ENABLE_CUVS=OFF \
     -DFAISS_OPT_LEVEL=avx2 \

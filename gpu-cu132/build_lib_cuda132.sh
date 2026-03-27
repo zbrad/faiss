@@ -9,7 +9,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+FAISS_ROOT="${FAISS_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+cd "$FAISS_ROOT"
 
 # Environment setup
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"

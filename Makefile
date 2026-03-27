@@ -40,37 +40,37 @@ build-lib:
 	export CUDA_HOME=$(CUDA_HOME); \
 	export FAISS_BUILD_JOBS=$(FAISS_BUILD_JOBS); \
 	export PYTHON=$(PYTHON); \
-	bash build_lib_cuda132.sh
+	bash gpu-cu132/build_lib_cuda132.sh
 
 build-pkg: build-lib
 	@export CUDA_ARCHS="$(CUDA_ARCHS)"; \
 	export CUDA_HOME=$(CUDA_HOME); \
 	export FAISS_BUILD_JOBS=$(FAISS_BUILD_JOBS); \
 	export PYTHON=$(PYTHON); \
-	bash build_pkg_cuda132.sh
+	bash gpu-cu132/build_pkg_cuda132.sh
 
 wheel: build-pkg
 	@export PYTHON=$(PYTHON); \
 	export FAISS_VARIANT=$(FAISS_VARIANT); \
-	bash package_wheel.sh
+	bash gpu-cu132/package_wheel.sh
 
 wheel-only:
 	@export PYTHON=$(PYTHON); \
 	export FAISS_VARIANT=$(FAISS_VARIANT); \
-	bash package_wheel.sh
+	bash gpu-cu132/package_wheel.sh
 
 check:
 	@export CUDA_ARCHS=$(CUDA_ARCHS); \
 	export CUDA_HOME=$(CUDA_HOME); \
 	export PYTHON=$(PYTHON); \
-	bash build_wheel.sh check
+	bash gpu-cu132/build_wheel.sh check
 
 clean:
-	@bash clean_build.sh
+	@bash gpu-cu132/clean_build.sh
 
 env-create:
 	@echo "Creating conda environment: faiss-gpu-cu132-py314"
-	conda env create -f environment_cuda132_py314.yml
+	conda env create -f gpu-cu132/environment_cuda132_py314.yml
 	@echo ""
 	@echo "To activate, run:"
 	@echo "  conda activate faiss-gpu-cu132-py314"

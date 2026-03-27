@@ -84,10 +84,10 @@ Expected output:
 
 | Script | Purpose |
 |---|---|
-| `build_lib_cuda132.sh` | Build C++ library (`libfaiss*.so`) via CMake |
-| `build_pkg_cuda132.sh` | Build Python SWIG bindings (`_swigfaiss*.so`) |
-| `package_wheel.sh` | Create `.whl` from built artifacts |
-| `clean_build.sh` | Remove all build directories and artifacts |
+| `gpu-cu132/build_lib_cuda132.sh` | Build C++ library (`libfaiss*.so`) via CMake |
+| `gpu-cu132/build_pkg_cuda132.sh` | Build Python SWIG bindings (`_swigfaiss*.so`) |
+| `gpu-cu132/package_wheel.sh` | Create `.whl` from built artifacts |
+| `gpu-cu132/clean_build.sh` | Remove all build directories and artifacts |
 | `Makefile` | Orchestrates all stages — `make build` runs everything |
 
 ## 🔧 Common Commands
@@ -106,7 +106,7 @@ wsl -e bash -c "CUDA_ARCHS='90;100;120' bash /mnt/f/GitHub/faiss/scripts/wsl/bui
 wsl -e bash -c "FAISS_BUILD_JOBS=16 bash /mnt/f/GitHub/faiss/scripts/wsl/build.sh"
 
 # Clean and rebuild
-wsl -e bash -c "bash /mnt/f/GitHub/faiss/clean_build.sh && bash /mnt/f/GitHub/faiss/scripts/wsl/build.sh"
+wsl -e bash -c "bash /mnt/f/GitHub/faiss/gpu-cu132/clean_build.sh && bash /mnt/f/GitHub/faiss/scripts/wsl/build.sh"
 
 # Install wheel (use --break-system-packages on Ubuntu 24.04)
 wsl -e bash -c "pip3 install /mnt/f/GitHub/faiss/build_output/faiss_gpu_cu132-*.whl --break-system-packages"

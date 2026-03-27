@@ -55,7 +55,7 @@ export CUDA_ARCHS="75;80;86;89;90;100;120"  # Adjust for your GPU architectures
 
 ### 1.1 Set Intel MKL Paths (Required)
 
-`build_lib_cuda132.sh` requires Intel MKL (`mkl_rt`) and may need explicit paths when auto-detection does not match your shell environment.
+`gpu-cu132/build_lib_cuda132.sh` requires Intel MKL (`mkl_rt`) and may need explicit paths when auto-detection does not match your shell environment.
 
 **WSL/Linux bash accessing Windows oneAPI install:**
 ```bash
@@ -99,16 +99,16 @@ Use one of the provided build scripts:
 
 **Automated build (recommended):**
 ```bash
-bash build_wheel_cuda132.sh
+bash gpu-cu132/build_wheel.sh
 ```
 
 **Manual build:**
 ```bash
 # Step 1: Build the C++ library
-bash build_lib_cuda132.sh
+bash gpu-cu132/build_lib_cuda132.sh
 
 # Step 2: Build Python bindings and wheel
-bash build_pkg_cuda132.sh
+bash gpu-cu132/build_pkg_cuda132.sh
 ```
 
 ### 3. Find the Built Wheel
@@ -200,7 +200,7 @@ python bench_*.py
 
 ```bash
 # Remove build files but keep wheel
-bash clean_build.sh
+bash gpu-cu132/clean_build.sh
 
 # Remove everything including wheels
 rm -rf build/ _build* _libfaiss_stage/ build_output/

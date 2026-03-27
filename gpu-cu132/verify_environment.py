@@ -164,7 +164,7 @@ def main():
         print("✗ Some checks failed. Please resolve issues before building.")
         print("\nCommon fixes:")
         print("  - Set CUDA_HOME=/usr/local/cuda-13.2")
-        print("  - Install conda: conda env create -f environment_cuda132_py314.yml")
+        print("  - Install conda: conda env create -f gpu-cu132/environment_cuda132_py314.yml")
         print("  - Install system deps: sudo apt install cmake make swig")
         return 1
 

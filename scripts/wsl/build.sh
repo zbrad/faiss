@@ -13,7 +13,7 @@ source "$SCRIPT_DIR/env.sh"
 cd "$FAISS_ROOT"
 
 # Strip any Windows CRLF from build scripts (safe to run each time)
-sed -i 's/\r//' build_lib_cuda132.sh build_pkg_cuda132.sh package_wheel.sh Makefile wsl_build.sh 2>/dev/null || true
+sed -i 's/\r//' gpu-cu132/build_lib_cuda132.sh gpu-cu132/build_pkg_cuda132.sh gpu-cu132/package_wheel.sh Makefile gpu-cu132/wsl_build.sh 2>/dev/null || true
 
 echo ""
 echo "========================================="

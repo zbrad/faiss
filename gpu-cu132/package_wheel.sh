@@ -9,7 +9,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+FAISS_ROOT="${FAISS_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+cd "$FAISS_ROOT"
 
 PYTHON="${PYTHON:-python3}"
 BUILD_OUTPUT_DIR="build_output"
@@ -56,7 +57,7 @@ wheel_basename=$(basename "$wheel_file")
 cd ..
 if command -v auditwheel &> /dev/null; then
     echo "[3/3] Repairing wheel with auditwheel..."
-    export LD_LIBRARY_PATH="${SCRIPT_DIR}/_libfaiss_stage/lib:/opt/intel/oneapi/mkl/latest/lib:${CUDA_HOME}/lib64:$LD_LIBRARY_PATH"
+    export LD_LIBRARY_PATH="${FAISS_ROOT}/_libfaiss_stage/lib:/opt/intel/oneapi/mkl/latest/lib:${CUDA_HOME}/lib64:$LD_LIBRARY_PATH"
     auditwheel repair "$BUILD_OUTPUT_DIR/$wheel_basename" \
         --exclude libcudart.so.13 \
         --exclude libcublas.so.13 \

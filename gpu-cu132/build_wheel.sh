@@ -9,7 +9,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-BUILD_OUTPUT_DIR="${SCRIPT_DIR}/build_output"
+FAISS_ROOT="${FAISS_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+BUILD_OUTPUT_DIR="${FAISS_ROOT}/build_output"
 
 # Color codes for terminal output
 RED='\033[0;31m'
@@ -90,8 +91,8 @@ package_wheel() {
 # Cleanup
 cleanup() {
     log_warn "Cleaning up build artifacts..."
-    rm -rf "${SCRIPT_DIR}/_build" "${SCRIPT_DIR}/_build_python"* "${SCRIPT_DIR}/_libfaiss_stage" \
-            "${SCRIPT_DIR}/build" "${SCRIPT_DIR}/faiss/python/build"
+        rm -rf "${FAISS_ROOT}/_build" "${FAISS_ROOT}/_build_python"* "${FAISS_ROOT}/_libfaiss_stage" \
+            "${FAISS_ROOT}/build" "${FAISS_ROOT}/faiss/python/build"
     log_info "Cleanup complete."
 }
 
