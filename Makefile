@@ -6,6 +6,7 @@ CUDA_ARCHS ?= 75\;80\;86\;89\;90\;100\;120
 CUDA_HOME ?= /usr/local/cuda
 FAISS_BUILD_JOBS ?= $(shell nproc)
 PYTHON ?= python3
+FAISS_ENABLE_CUVS ?= ON
 GPU_CU132_ROOT ?= gpu-cu132
 GPU_CU132_SCRIPTS ?= $(GPU_CU132_ROOT)/scripts
 # Wheel variant: appended to the package name as faiss-{FAISS_VARIANT}.
@@ -32,6 +33,7 @@ help:
 	@echo "  CUDA_HOME              - CUDA installation path"
 	@echo "  FAISS_BUILD_JOBS       - Parallel build jobs"
 	@echo "  PYTHON                 - Python executable"
+	@echo "  FAISS_ENABLE_CUVS      - Enable cuVS for cu132 builds (ON/OFF)"
 	@echo "  FAISS_VARIANT          - Optional wheel suffix (example: gpu-cu132)"
 	@echo "  GPU_CU132_ROOT         - Optional toolkit root (default: gpu-cu132)"
 
@@ -43,6 +45,7 @@ build-lib:
 	@export CUDA_ARCHS="$(CUDA_ARCHS)"; \
 	export CUDA_HOME=$(CUDA_HOME); \
 	export FAISS_BUILD_JOBS=$(FAISS_BUILD_JOBS); \
+	export FAISS_ENABLE_CUVS=$(FAISS_ENABLE_CUVS); \
 	export PYTHON=$(PYTHON); \
 	bash $(GPU_CU132_SCRIPTS)/build_lib_cuda132.sh
 
@@ -50,6 +53,7 @@ build-pkg: build-lib
 	@export CUDA_ARCHS="$(CUDA_ARCHS)"; \
 	export CUDA_HOME=$(CUDA_HOME); \
 	export FAISS_BUILD_JOBS=$(FAISS_BUILD_JOBS); \
+	export FAISS_ENABLE_CUVS=$(FAISS_ENABLE_CUVS); \
 	export PYTHON=$(PYTHON); \
 	bash $(GPU_CU132_SCRIPTS)/build_pkg_cuda132.sh
 

@@ -15,8 +15,13 @@ cd "$FAISS_ROOT"
 # Environment setup
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
 PYTHON="${PYTHON:-python3}"
+FAISS_ENABLE_CUVS="${FAISS_ENABLE_CUVS:-ON}"
 PY_VER=$(${PYTHON} -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
 BUILD_DIR="_build_python_${PY_VER}"
+CMAKE_PREFIX_PATH="$CUDA_HOME"
+if [ -n "${CONDA_PREFIX:-}" ]; then
+    CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$CONDA_PREFIX"
+fi
 
 echo "========================================="
 echo "Building FAISS Python Package"
@@ -24,6 +29,7 @@ echo "========================================="
 echo "Python executable: $PYTHON"
 echo "Python version: $PY_VER"
 echo "CUDA_HOME: $CUDA_HOME"
+echo "FAISS_ENABLE_CUVS: $FAISS_ENABLE_CUVS"
 echo ""
 
 # Verify prerequisites
@@ -66,13 +72,13 @@ cmake -B "$BUILD_DIR" \
     -DCMAKE_LIBRARY_PATH="${FAISS_ROOT}/_libfaiss_stage/lib" \
     -DCMAKE_SHARED_LINKER_FLAGS="-L${FAISS_ROOT}/_libfaiss_stage/lib" \
     -DFAISS_ENABLE_GPU=ON \
-    -DFAISS_ENABLE_CUVS=OFF \
+    -DFAISS_ENABLE_CUVS="$FAISS_ENABLE_CUVS" \
     -DFAISS_OPT_LEVEL=avx2 \
     -DCMAKE_BUILD_TYPE=Release \
     -DPython_EXECUTABLE=$PYTHON \
     -DCMAKE_CUDA_COMPILER="$CUDA_HOME/bin/nvcc" \
     -DCMAKE_CUDA_TOOLKIT_INCLUDE_DIR="$CUDA_HOME/include" \
-    -DCMAKE_PREFIX_PATH="$CUDA_HOME" \
+    -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
     faiss/python
 
 # Build SWIG bindings

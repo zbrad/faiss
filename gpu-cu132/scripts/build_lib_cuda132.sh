@@ -16,6 +16,7 @@ cd "$FAISS_ROOT"
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
 CUDA_ARCHS="${CUDA_ARCHS:-75;80;86;89;90;100;120}"
 PYTHON="${PYTHON:-python3}"
+FAISS_ENABLE_CUVS="${FAISS_ENABLE_CUVS:-ON}"
 BUILD_DIR="_build"
 
 # WSL: ensure CUDA is on PATH
@@ -42,12 +43,17 @@ fi
 MKL_ROOT="${MKL_ROOT:-/opt/intel/oneapi/mkl/latest}"
 MKL_INCLUDE_DIR="${MKL_INCLUDE_DIR:-$MKL_ROOT/include}"
 MKL_LIB="${MKL_LIB:-$MKL_ROOT/lib/libmkl_rt.so}"
+CMAKE_PREFIX_PATH="$CUDA_HOME;$MKL_ROOT"
+if [ -n "${CONDA_PREFIX:-}" ]; then
+    CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$CONDA_PREFIX"
+fi
 
 echo "========================================="
 echo "Building FAISS C++ Library (libfaiss)"
 echo "========================================="
 echo "CUDA_HOME: $CUDA_HOME"
 echo "CUDA_ARCHS: $CUDA_ARCHS"
+echo "FAISS_ENABLE_CUVS: $FAISS_ENABLE_CUVS"
 echo "Python: $PYTHON"
 echo "CONDA_PREFIX: ${CONDA_PREFIX:-<unset>}"
 echo "MKL_ROOT: $MKL_ROOT"
@@ -105,7 +111,7 @@ cmake -B "$BUILD_DIR" \
     -DBUILD_SHARED_LIBS=ON \
     -DFAISS_ENABLE_C_API=ON \
     -DFAISS_ENABLE_GPU=ON \
-    -DFAISS_ENABLE_CUVS=OFF \
+    -DFAISS_ENABLE_CUVS="$FAISS_ENABLE_CUVS" \
     -DBUILD_TESTING=OFF \
     -DFAISS_OPT_LEVEL=avx2 \
     -DCMAKE_CUDA_ARCHITECTURES="$CUDA_ARCHS" \
@@ -120,7 +126,7 @@ cmake -B "$BUILD_DIR" \
     -DLAPACK_LIBRARIES="$MKL_LIB" \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_PREFIX_PATH="$CUDA_HOME;$MKL_ROOT" \
+    -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
     .
 
 # Build
