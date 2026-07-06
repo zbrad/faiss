@@ -122,8 +122,24 @@ if(FAISS_ENABLE_GPU)
 endif()
 
 if(FAISS_ENABLE_CUVS AND NOT TARGET cuvs::cuvs)
-   find_package(cuvs)
- endif()
+  find_package(cuvs)
+  # If an explicit GB10 library is requested, override the imported target to
+  # use it (libcuvs-gb10-*.so, see zbrad/cuvs gpu-build/docs/WHEEL_NAMING.md)
+  # instead of whatever find_package resolved to.
+  if(FAISS_CUVS_GB10_LIBRARY AND TARGET cuvs::cuvs)
+    if(NOT EXISTS "${FAISS_CUVS_GB10_LIBRARY}")
+      message(FATAL_ERROR "FAISS_CUVS_GB10_LIBRARY not found: ${FAISS_CUVS_GB10_LIBRARY}")
+    endif()
+    get_filename_component(_cuvs_gb10_soname "${FAISS_CUVS_GB10_LIBRARY}" NAME)
+    set_target_properties(cuvs::cuvs PROPERTIES
+      IMPORTED_LOCATION "${FAISS_CUVS_GB10_LIBRARY}"
+      IMPORTED_LOCATION_RELEASE "${FAISS_CUVS_GB10_LIBRARY}"
+      IMPORTED_SONAME "${_cuvs_gb10_soname}"
+      IMPORTED_SONAME_RELEASE "${_cuvs_gb10_soname}"
+    )
+    message(STATUS "cuVS gb10 override: cuvs::cuvs -> ${FAISS_CUVS_GB10_LIBRARY}")
+  endif()
+endif()
 
 add_subdirectory(faiss)
 
