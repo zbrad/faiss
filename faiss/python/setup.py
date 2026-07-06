@@ -117,17 +117,21 @@ are implemented on the GPU. It is developed by Facebook AI Research.
 """
 
 # Allow the wheel to be published under a variant name, e.g.:
-#   FAISS_VARIANT=gpu-cu132   → faiss-gpu-cu132
-#   FAISS_VARIANT=cpu          → faiss-cpu
-#   FAISS_VARIANT=gpu-cu128   → faiss-gpu-cu128
+#   FAISS_VARIANT=rtx40-cu132 → faiss-rtx40-cu132  (Ada Lovelace, x86_64)
+#   FAISS_VARIANT=rtx50-cu132 → faiss-rtx50-cu132  (Blackwell, x86_64)
+#   FAISS_VARIANT=gb10-cu132  → faiss-gb10-cu132   (GB10, aarch64/DGX Spark)
+#   FAISS_VARIANT=cpu         → faiss-cpu
 # Omit / leave empty for the canonical upstream name "faiss".
 _variant = os.environ.get("FAISS_VARIANT", "").strip()
 _package_name = f"faiss-{_variant}" if _variant else "faiss"
 
-# Append GPU/arch details when building a GPU variant.
+# Append GPU/arch details when building a GPU variant. CUDA_ARCHS is only
+# ever set for genuine GPU builds (gpu-cu132, or codename variants like
+# rtx40-cu132/rtx50-cu132/gb10-cu132 -- none of which contain the literal
+# substring "gpu"), so its presence alone is the right gate.
 _cuda_archs = os.environ.get("CUDA_ARCHS", "").strip()
 import re as _re
-if _variant and "gpu" in _variant and _cuda_archs:
+if _variant and _cuda_archs:
     # Normalise "75;80;86;89;90;100;120" or "121-real" → ["sm_75", "sm_80", ...]
     _arch_codes = sorted({
         a.strip().replace("-real", "").replace("-virtual", "")
@@ -167,7 +171,7 @@ else:
 long_description = _base_description.rstrip() + _gpu_details
 
 setup(
-    name="faiss",
+    name=_package_name,
     version="1.14.3",
     description="A library for efficient similarity search and clustering of dense vectors",
     long_description=long_description,

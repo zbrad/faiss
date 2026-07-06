@@ -15,8 +15,8 @@
 # Defaults to CUDA 13.2 (cu132) when neither is set.
 #
 # Derived everywhere as:
-#   wheel/package name : faiss-gpu-${FAISS_CUDA_TAG}
-#   C++ library names  : libfaiss-{arch}-${FAISS_CUDA_TAG}.so
+#   wheel/package name : faiss-{codename}-${FAISS_CUDA_TAG}  (codename: gb10/rtx40/rtx50)
+#   C++ library names  : libfaiss-{codename}-${FAISS_CUDA_TAG}.so
 #
 # On a host with multiple toolkits installed (e.g. /usr/local/cuda-13.2 and
 # /usr/local/cuda-13.3), CUDA_HOME is auto-resolved to the directory matching
@@ -55,10 +55,11 @@ if command -v nvcc >/dev/null 2>&1; then
 fi
 
 # Echo "-sm<arch>" when the build targets exactly one GPU arch, else nothing.
-# Used to tag single-arch wheels/libraries (e.g. faiss-gpu-cu133-sm121) so a
-# wheel that only runs on one GPU generation is identifiable by name. Reads
-# CUDA_ARCHS (arg overrides), tolerant of ";"/","/"\;" separators and
-# -real/-virtual suffixes.
+# Not used by the gb10/rtx40/rtx50 scripts (those hardcode a single arch and
+# codename per script, so this suffix would be redundant) -- kept only for
+# gpu-cu/wsl/env.sh and gpu-cu/wsl/verify.sh, which still assume a generic
+# multi-arch x86_64 build. Reads CUDA_ARCHS (arg overrides), tolerant of
+# ";"/","/"\;" separators and -real/-virtual suffixes.
 faiss_sm_suffix() {
     local archs="${1:-${CUDA_ARCHS:-}}"
     local uniq

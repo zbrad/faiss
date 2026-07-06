@@ -4,7 +4,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 #
-# Package FAISS aarch64 / DGX Spark wheel (faiss-gpu-${FAISS_CUDA_TAG}, manylinux aarch64)
+# Package FAISS GB10 / DGX Spark wheel (faiss-gpu-${FAISS_CUDA_TAG}, manylinux aarch64)
 
 set -e
 
@@ -16,14 +16,20 @@ cd "$FAISS_ROOT"
 source "$SCRIPT_DIR/cuda_env.sh"
 
 PYTHON="${PYTHON:-python3}"
-BUILD_OUTPUT_DIR="build_output_aarch64"
-# DGX Spark targets a single arch (SM 121), so the package name carries -sm121:
-# faiss-gpu-${FAISS_CUDA_TAG}-sm121. The wheel's manylinux_*_aarch64 platform tag
+# Resolve to an absolute path: CMake's find_package(Python) can otherwise
+# resolve a bare "python3" differently than the shell just did (e.g. picking
+# up a different interpreter from a conda env on PATH), causing
+# Development.Module/NumPy detection to fail against a Python that lacks dev
+# headers.
+PYTHON="$(command -v "$PYTHON")" || { echo "ERROR: Python interpreter '$PYTHON' not found on PATH. Set PYTHON to an absolute path." >&2; exit 1; }
+BUILD_OUTPUT_DIR="build_output_gb10"
+# Codename naming (matches libfaiss-gb10-*.so / libcuvs-gb10-*.so):
+# faiss-gb10-${FAISS_CUDA_TAG}. The wheel's manylinux_*_aarch64 platform tag
 # still selects aarch64 at install time.
 export CUDA_ARCHS="121"
-FAISS_VARIANT="gpu-${FAISS_CUDA_TAG}$(faiss_sm_suffix)"
+FAISS_VARIANT="gb10-${FAISS_CUDA_TAG}"
 PY_VER=$(${PYTHON} -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
-BUILD_DIR="_build_python_aarch64_${PY_VER}"
+BUILD_DIR="_build_python_gb10_${PY_VER}"
 
 # cuVS-gb10
 CUVS_REPO="${CUVS_REPO:-/home/zbrad/gh/cuvs}"
@@ -32,7 +38,7 @@ CUVS_DIR="${CUVS_DIR:-${CUVS_REPO}/cpp/build}"
 export FAISS_VARIANT
 
 echo "========================================="
-echo "Packaging FAISS Wheel (DGX Spark)"
+echo "Packaging FAISS Wheel (GB10 / DGX Spark)"
 echo "========================================="
 echo "Package name   : faiss-${FAISS_VARIANT}"
 echo "Output directory: $BUILD_OUTPUT_DIR"
@@ -40,7 +46,7 @@ echo ""
 
 # Verify build exists
 if [ ! -d "$BUILD_DIR" ]; then
-    echo "ERROR: Build directory not found. Run build_pkg_aarch64.sh first."
+    echo "ERROR: Build directory not found. Run build_pkg_gb10.sh first."
     exit 1
 fi
 
@@ -61,11 +67,11 @@ fi
 cp "$wheel_file" "../$BUILD_OUTPUT_DIR/"
 wheel_basename=$(basename "$wheel_file")
 
-# Repair wheel: bundle libfaiss-aarch64-${FAISS_CUDA_TAG}.so and libcuvs-gb10-${FAISS_CUDA_TAG}.so, fix RPATHs
+# Repair wheel: bundle libfaiss-gb10-${FAISS_CUDA_TAG}.so and libcuvs-gb10-${FAISS_CUDA_TAG}.so, fix RPATHs
 cd ..
 if command -v auditwheel &> /dev/null; then
     echo "[3/3] Repairing wheel with auditwheel..."
-    export LD_LIBRARY_PATH="${FAISS_ROOT}/_libfaiss_stage_aarch64/lib:${CUVS_DIR}:${CUDA_HOME:-/usr/local/cuda}/lib64:$LD_LIBRARY_PATH"
+    export LD_LIBRARY_PATH="${FAISS_ROOT}/_libfaiss_stage_gb10/lib:${CUVS_DIR}:${CUDA_HOME:-/usr/local/cuda}/lib64:$LD_LIBRARY_PATH"
     auditwheel repair "$BUILD_OUTPUT_DIR/$wheel_basename" \
         --exclude libcudart.so.13 \
         --exclude libcublas.so.13 \
@@ -81,7 +87,7 @@ fi
 
 echo ""
 echo "========================================="
-echo "✓ Wheel packaging complete (DGX Spark)"
+echo "✓ Wheel packaging complete (GB10 / DGX Spark)"
 echo "========================================="
 echo "Wheel: $repaired_wheel"
 echo ""

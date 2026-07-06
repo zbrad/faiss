@@ -1,12 +1,12 @@
-﻿#!/bin/bash
+#!/bin/bash
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 #
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 #
-# Unified build script for FAISS-GPU wheel — x86_64 (Intel MKL)
-# Output: faiss-gpu-${FAISS_CUDA_TAG} wheel (manylinux x86_64 platform tag)
-#         + libfaiss-x86_64-${FAISS_CUDA_TAG}.so / libfaiss_c-x86_64-${FAISS_CUDA_TAG}.so
+# Unified build script for FAISS-GPU wheel — RTX 50 / Blackwell (x86_64, Intel MKL)
+# Output: faiss-gpu-${FAISS_CUDA_TAG}-sm120 wheel (manylinux x86_64 platform tag)
+#         + libfaiss-rtx50-${FAISS_CUDA_TAG}.so / libfaiss_c-rtx50-${FAISS_CUDA_TAG}.so
 
 set -e
 
@@ -14,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FAISS_ROOT="${FAISS_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 # CUDA version (single source of truth — bump in cuda_env.sh for cu133)
 source "$SCRIPT_DIR/cuda_env.sh"
-BUILD_OUTPUT_DIR="${FAISS_ROOT}/build_output"
+BUILD_OUTPUT_DIR="${FAISS_ROOT}/build_output_rtx50"
 
 # Color codes for terminal output
 RED='\033[0;31m'
@@ -37,25 +37,25 @@ log_error() {
 # Check prerequisites
 check_prerequisites() {
     log_info "Checking prerequisites..."
-    
+
     # Check CUDA
     if ! command -v nvcc &> /dev/null; then
         log_error "CUDA not found. Please install CUDA $FAISS_CUDA_VER or set CUDA_HOME."
         exit 1
     fi
-    
+
     cuda_version=$(nvcc --version | grep "release" | awk '{print $(NF)}')
     log_info "Found CUDA version: $cuda_version"
-    
+
     # Check Python
     if ! command -v python &> /dev/null && ! command -v python3 &> /dev/null; then
         log_error "Python not found"
         exit 1
     fi
-    
+
     python_version=$(python --version 2>&1 || python3 --version 2>&1)
     log_info "Found Python: $python_version"
-    
+
     # Check required tools
     for tool in cmake make swig; do
         if ! command -v $tool &> /dev/null; then
@@ -63,7 +63,7 @@ check_prerequisites() {
             exit 1
         fi
     done
-    
+
     log_info "All prerequisites satisfied."
 }
 
@@ -71,45 +71,46 @@ check_prerequisites() {
 show_config() {
     log_info "Build Configuration:"
     echo "  CUDA_HOME: ${CUDA_HOME:-/usr/local/cuda}"
-    echo "  CUDA_ARCHS: ${CUDA_ARCHS:-75;80;86;89;90;120}"
+    echo "  CUDA_ARCHS: 120 (Blackwell, RTX 5080/5090)"
     echo "  Python: $(python --version 2>&1 || python3 --version 2>&1)"
     echo "  Build output: $BUILD_OUTPUT_DIR"
+    echo "  Wheel name: faiss-rtx50-${FAISS_CUDA_TAG}"
 }
 
 # Build steps
 build_lib() {
-    log_info "Building C++ library (libfaiss)..."
-    bash "${SCRIPT_DIR}/build_lib_x86_64.sh"
+    log_info "Building C++ library (libfaiss-rtx50)..."
+    bash "${SCRIPT_DIR}/build_lib_rtx50.sh"
 }
 
 build_pkg() {
     log_info "Building Python package and wheel..."
-    bash "${SCRIPT_DIR}/build_pkg_x86_64.sh"
+    bash "${SCRIPT_DIR}/build_pkg_rtx50.sh"
 }
 
 package_wheel() {
     log_info "Packaging wheel..."
-    bash "${SCRIPT_DIR}/package_wheel_x86_64.sh"
+    bash "${SCRIPT_DIR}/package_wheel_rtx50.sh"
 }
 
 # Cleanup
 cleanup() {
-    log_warn "Cleaning up build artifacts..."
-        rm -rf "${FAISS_ROOT}/_build" "${FAISS_ROOT}/_build_python"* "${FAISS_ROOT}/_libfaiss_stage" \
+    log_warn "Cleaning up RTX 50 build artifacts..."
+        rm -rf "${FAISS_ROOT}/_build_rtx50" "${FAISS_ROOT}/_build_python_rtx50"* "${FAISS_ROOT}/_libfaiss_stage_rtx50" \
             "${FAISS_ROOT}/build" "${FAISS_ROOT}/faiss/python/build"
     log_info "Cleanup complete."
 }
 
 # Main build process
 main() {
-    log_info "Starting FAISS-GPU wheel build for CUDA $FAISS_CUDA_VER..."
-    
+    log_info "Starting FAISS-GPU wheel build (RTX 50) for CUDA $FAISS_CUDA_VER..."
+
     check_prerequisites
     show_config
-    
+
     # Create output directory
     mkdir -p "$BUILD_OUTPUT_DIR"
-    
+
     # Parse arguments
     case "${1:-all}" in
         lib)
@@ -147,13 +148,13 @@ main() {
             exit 1
             ;;
     esac
-    
+
     if [[ "${1:-all}" != "check" ]]; then
         log_info "Build complete!"
         log_info "Wheel output directory: $BUILD_OUTPUT_DIR"
-        if [[ -f "$BUILD_OUTPUT_DIR"/faiss_gpu*.whl ]]; then
+        if [[ -f "$BUILD_OUTPUT_DIR"/faiss_rtx50*.whl ]]; then
             log_info "Wheel files:"
-            ls -lh "$BUILD_OUTPUT_DIR"/faiss_gpu*.whl
+            ls -lh "$BUILD_OUTPUT_DIR"/faiss_rtx50*.whl
         fi
     fi
 }

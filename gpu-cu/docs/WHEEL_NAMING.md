@@ -1,9 +1,13 @@
 # FAISS Wheel Naming Convention
 
-_Last updated: 2026-03-25_
+_Last updated: 2026-07-06_
 
-This document records the research and rationale behind the `faiss-gpu-cu132`
-package name used in this branch.
+This document records the research and rationale behind the CUDA-versioned
+package names used in this branch, and the GPU-codename scheme
+(`gb10`/`rtx40`/`rtx50`) they're built on — switched from a single portable
+`faiss-gpu-cu132` name to per-codename names (`faiss-rtx40-cu132` etc.) on
+2026-07-06, mirroring [zbrad/cuvs](https://github.com/zbrad/cuvs)'s own
+GPU-codename convention (see that repo's `gpu-build/docs/WHEEL_NAMING.md`).
 
 ---
 
@@ -45,7 +49,7 @@ name itself.
 
 ---
 
-## Why `faiss-gpu-cu132`?
+## Why CUDA-versioned names?
 
 CUDA-version-specific wheel suffixes (`-cu128`, `-cu132`) originate from
 **PyTorch's** distribution convention (e.g. `torch-2.x+cu132`). That convention
@@ -63,55 +67,58 @@ However, it is the right choice for this private branch for several reasons:
    shared file server) the CUDA version in the name is genuinely useful for
    administrators managing multiple CUDA environments.
 4. **Follows an established convention** — PyTorch's `-cu132` suffix is widely
-   recognised; users who install PyTorch wheels will find `faiss-gpu-cu132`
+   recognised; users who install PyTorch wheels will find `faiss-rtx40-cu132`
    immediately legible.
 
 ---
 
-## CPU arch by platform tag; GPU arch by optional name suffix
+## CPU arch by platform tag; GPU arch (and CPU arch host once removed) by codename
 
 Two different "architectures" are in play and are encoded differently:
 
 - **CPU arch (x86_64 vs aarch64)** — carried by the wheel's **platform tag**,
   which `auditwheel repair` stamps onto each wheel. Not in the package name.
-- **GPU arch (SM / compute capability)** — a *multi-arch* (portable) build leaves
-  it out of the name; a *single-arch* build appends **`-sm<arch>`** so a wheel
-  that only runs on one GPU generation is identifiable.
+- **GPU arch (SM / compute capability)** — encoded via **GPU codename**
+  (`gb10`/`rtx40`/`rtx50`) rather than a raw SM number, mirroring
+  `zbrad/cuvs`'s naming (`libcuvs-gb10-cu132.so` etc.). Every build here is
+  single-arch — there is no portable multi-arch wheel anymore, see
+  [BUILD_rtx.md](BUILD_rtx.md) for why only owned/verified consumer hardware
+  is built.
 
 | Build | Package name | Platform tag (filename) | BLAS / accel |
 |-------|--------------|-------------------------|--------------|
-| x86_64, multi-arch (default) | `faiss-gpu-cu132` | `…-manylinux2014_x86_64.whl` | Intel MKL, AVX2/AVX512 |
-| x86_64, single-arch (`CUDA_ARCHS=89`) | `faiss-gpu-cu132-sm89` | `…-manylinux2014_x86_64.whl` | Intel MKL |
-| aarch64 / DGX Spark (always SM 121) | `faiss-gpu-cu132-sm121` | `…-manylinux2014_aarch64.whl` | OpenBLAS + cuVS, SVE |
+| RTX 40 / Ada Lovelace (x86_64, SM 89) | `faiss-rtx40-cu132` | `…-manylinux2014_x86_64.whl` | Intel MKL, AVX2/AVX512 |
+| RTX 50 / Blackwell (x86_64, SM 120) | `faiss-rtx50-cu132` | `…-manylinux2014_x86_64.whl` | Intel MKL, AVX2/AVX512 |
+| GB10 / DGX Spark (aarch64, always SM 121) | `faiss-gb10-cu132` | `…-manylinux2014_aarch64.whl` | OpenBLAS + cuVS, SVE |
 
-For a portable multi-arch build, `pip install faiss-gpu-cu132` resolves to the
-correct wheel on each host via the platform tag (there is no Linux fat-binary
-format, so x86_64 and aarch64 are genuinely separate wheels sharing one name).
-A single-arch wheel carries its `-sm<arch>` in the name, so you install it
-explicitly: `pip install faiss-gpu-cu132-sm121`.
-
-The `-sm<arch>` suffix is added **automatically** whenever `CUDA_ARCHS` resolves
-to exactly one GPU arch (see `faiss_sm_suffix` in `cuda_env.sh`); multi-arch
-builds get no suffix. The DGX Spark / aarch64 build always targets SM 121, so it
-is always `-sm121`.
+You install the codename matching your GPU explicitly, e.g.
+`pip install faiss-rtx40-cu132`.
 
 ## `FAISS_VARIANT` Naming Table
 
 The build system exposes a `FAISS_VARIANT` environment variable that is passed
 to `setup.py` at wheel-build time. The resulting package name is
-`faiss-{FAISS_VARIANT}` (or plain `faiss` when the variable is unset). The build
-scripts derive `FAISS_VARIANT=gpu-${FAISS_CUDA_TAG}` and append `-sm<arch>` for
-single-arch builds.
+`faiss-{FAISS_VARIANT}` (or plain `faiss` when the variable is unset). The
+`build_wheel_{gb10,rtx40,rtx50}.sh` scripts each derive
+`FAISS_VARIANT={codename}-${FAISS_CUDA_TAG}` directly — no separate `-sm<arch>`
+suffix, since the codename alone already implies exactly one arch.
 
 | Scenario | `CUDA_ARCHS` | `FAISS_VARIANT` | Resulting wheel name |
 |----------|--------------|-----------------|----------------------|
-| CUDA 13.2 GPU, x86_64, portable | `75;80;86;89;90;120` | `gpu-cu132` | `faiss-gpu-cu132` |
-| CUDA 13.2 GPU, x86_64, Ada-only | `89` | `gpu-cu132-sm89` | `faiss-gpu-cu132-sm89` |
-| CUDA 13.2 GPU, aarch64 / DGX Spark | `121` | `gpu-cu132-sm121` | `faiss-gpu-cu132-sm121` |
-| Next CUDA release (`FAISS_CUDA_VER=13.3`) | *(any)* | `gpu-cu133[-sm…]` | `faiss-gpu-cu133[-sm…]` |
-| Generic GPU (no CUDA-version lock) | — | `gpu` | `faiss-gpu` |
+| CUDA 13.2 GPU, RTX 40 / Ada | `89` | `rtx40-cu132` | `faiss-rtx40-cu132` |
+| CUDA 13.2 GPU, RTX 50 / Blackwell | `120` | `rtx50-cu132` | `faiss-rtx50-cu132` |
+| CUDA 13.2 GPU, GB10 / DGX Spark | `121` | `gb10-cu132` | `faiss-gb10-cu132` |
+| Next CUDA release (`FAISS_CUDA_VER=13.3`) | *(any)* | `{codename}-cu133` | `faiss-{codename}-cu133` |
 | CPU-only build | `cpu` | `faiss-cpu` | Exact match for active PyPI package |
 | Upstream canonical/untagged | *(unset)* | `faiss` | Plain upstream name |
+
+`gpu-cu/wsl/env.sh` and `gpu-cu/wsl/verify.sh` (the Windows/WSL convenience
+layer) still derive a generic `gpu-${FAISS_CUDA_TAG}[-sm<arch>]` variant via
+the `faiss_sm_suffix` helper in `cuda_env.sh` rather than a codename — that
+path assumes a portable multi-arch x86_64 build that no longer has a backing
+script (`build_lib_x86_64.sh` was replaced by the rtx40/rtx50 split) and
+depends on a root `Makefile` target (`make build`) that doesn't exist in this
+checkout. It predates this rework and hasn't been reconciled with it.
 
 ## Selecting / bumping the CUDA version (cu132 ↔ cu133)
 
@@ -119,17 +126,16 @@ The CUDA version is a single input. Specify it **per build** (no file edits) wit
 either variable — the other is derived (`13.3` ⇄ `cu133`):
 
 ```bash
-make build FAISS_CUDA_VER=13.3              # x86_64, CUDA 13.3 → faiss-gpu-cu133
-make build-aarch64 FAISS_CUDA_VER=13.3      # aarch64 / DGX Spark, CUDA 13.3
-FAISS_CUDA_TAG=cu133 bash gpu-cu/scripts/build_wheel_x86_64.sh   # tag form
+FAISS_CUDA_VER=13.3 bash gpu-cu/scripts/build_wheel_rtx40.sh   # RTX 40, CUDA 13.3 → faiss-rtx40-cu133
+FAISS_CUDA_VER=13.3 bash gpu-cu/scripts/build_wheel_gb10.sh    # GB10, CUDA 13.3
+FAISS_CUDA_TAG=cu133 bash gpu-cu/scripts/build_wheel_rtx50.sh  # tag form
 ```
 
-To change the **default**, edit the two values in `gpu-cu/scripts/cuda_env.sh`
-(mirrored by the same-named make variables). Every wheel name
-(`faiss-gpu-${FAISS_CUDA_TAG}`) and C++ library name
-(`libfaiss-{arch}-${FAISS_CUDA_TAG}.so`) derives from it, so a new CUDA release
-needs no script or path renames. The `gpu-cu/` directory and `environment.yml`
-are version-agnostic on purpose.
+To change the **default**, edit the two values in `gpu-cu/scripts/cuda_env.sh`.
+Every wheel name (`faiss-{codename}-${FAISS_CUDA_TAG}`) and C++ library name
+(`libfaiss-{codename}-${FAISS_CUDA_TAG}.so`) derives from it, so a new CUDA
+release needs no script or path renames. The `gpu-cu/` directory and
+`environment.yml` are version-agnostic on purpose.
 
 **Multi-toolkit hosts.** When `CUDA_HOME` is not set explicitly, `cuda_env.sh`
 resolves it to `/usr/local/cuda-${FAISS_CUDA_VER}` if that directory exists
@@ -144,51 +150,56 @@ requested, the scripts print a warning so you can correct `CUDA_HOME`.
 
 When building the C++ libraries directly (without a Python wheel), the following
 naming scheme is used. The base names follow CMake target names; the build scripts
-append `-{arch}-${FAISS_CUDA_TAG}`. The tables below show the current
+append `-{codename}-${FAISS_CUDA_TAG}`. The tables below show the current
 `FAISS_CUDA_TAG=cu132`; the `cu132` portion changes with the variable.
 
-### Standard (x86_64) build — `build_lib_x86_64.sh`
+### RTX 40 / Ada Lovelace build — `build_lib_rtx40.sh`
 
 | Library | Filename | Notes |
 |---------|----------|-------|
-| Main C++ library | `libfaiss-x86_64-cu132.so` | `FAISS_OUTPUT_NAME=faiss-x86_64-cu132` |
+| Main C++ library | `libfaiss-rtx40-cu132.so` | `FAISS_OUTPUT_NAME=faiss-rtx40-cu132` |
 | AVX2 variant | `libfaiss_avx2.so` | CPU SIMD opt-level (variant names not suffixed) |
 | AVX512 variant | `libfaiss_avx512.so` | CPU SIMD opt-level (variant names not suffixed) |
-| C API wrapper | `libfaiss_c-x86_64-cu132.so` | `FAISS_C_OUTPUT_NAME=faiss_c-x86_64-cu132` |
+| C API wrapper | `libfaiss_c-rtx40-cu132.so` | `FAISS_C_OUTPUT_NAME=faiss_c-rtx40-cu132` |
 | C API AVX2 | `libfaiss_c_avx2.so` | Paired with `libfaiss_avx2` |
-| cuVS companion | `libcuvs.so` | From `rapidsai/cuvs` |
 
 > **Note:** `FAISS_OUTPUT_NAME` renames only the base `faiss`/`faiss_c` targets
 > (faiss/CMakeLists.txt). The AVX2/AVX512 SIMD variants keep their conventional
 > `libfaiss_avx2.so` / `libfaiss_avx512.so` names; `auditwheel` bundles them into
 > the wheel regardless of filename.
 
-### DGX Spark (aarch64, SM 121) build — `build_lib_aarch64.sh`
+### RTX 50 / Blackwell build — `build_lib_rtx50.sh`
+
+Same layout as RTX 40, with `rtx50` in place of `rtx40`:
+`libfaiss-rtx50-cu132.so`, `libfaiss_c-rtx50-cu132.so`.
+
+### GB10 / DGX Spark (aarch64, SM 121) build — `build_lib_gb10.sh`
 
 | Library | Filename | Notes |
 |---------|----------|-------|
-| Main C++ library | `libfaiss-aarch64-cu132.so` | `FAISS_OUTPUT_NAME=faiss-aarch64-cu132` |
-| C API wrapper | `libfaiss_c-aarch64-cu132.so` | `FAISS_C_OUTPUT_NAME=faiss_c-aarch64-cu132` |
+| Main C++ library | `libfaiss-gb10-cu132.so` | `FAISS_OUTPUT_NAME=faiss-gb10-cu132` |
+| C API wrapper | `libfaiss_c-gb10-cu132.so` | `FAISS_C_OUTPUT_NAME=faiss_c-gb10-cu132` |
 | cuVS companion | `libcuvs-gb10-cu132.so` | From `zbrad/cuvs`, SM 121 only |
 
-### DGX Spark Python wheel — `build_wheel_aarch64.sh`
+### GB10 Python wheel — `build_wheel_gb10.sh`
 
 | Artifact | Name | Notes |
 |----------|------|-------|
-| Python wheel | `faiss-gpu-cu132` | `FAISS_VARIANT=gpu-cu132` in `setup.py` |
-| Built by | `build_wheel_aarch64.sh` | Orchestrates lib → pkg → wheel steps |
-| Stage dir | `_libfaiss_stage_aarch64/` | Mirrors `_libfaiss_stage/` for x86_64 build |
+| Python wheel | `faiss-gb10-cu132` | `FAISS_VARIANT=gb10-cu132` in `setup.py` |
+| Built by | `build_wheel_gb10.sh` | Orchestrates lib → pkg → wheel steps |
+| Stage dir | `_libfaiss_stage_gb10/` | Mirrors `_libfaiss_stage_rtx40/` / `_libfaiss_stage_rtx50/` |
 
 The `FAISS_OUTPUT_NAME` and `FAISS_C_OUTPUT_NAME` cmake variables are defined in
 `faiss/CMakeLists.txt` and `c_api/CMakeLists.txt` respectively and have no effect
 when left unset (an unconfigured upstream build produces `libfaiss.so` /
-`libfaiss_c.so`). Both the x86_64 and aarch64 build scripts set them so the two
+`libfaiss_c.so`). The rtx40/rtx50/gb10 build scripts all set them so the three
 variants' libraries never collide if installed side by side.
 
 The cuVS companion library name mirrors the zbrad/cuvs project's GPU-codename
 convention (switched from a CPU-arch/SM-number scheme on 2026-07-06; see that
 repo's `gpu-build/docs/WHEEL_NAMING.md`): `libcuvs-{codename}-{cuda_tag}.so`,
-e.g. `libcuvs-gb10-cu132.so` for DGX Spark.
+e.g. `libcuvs-gb10-cu132.so` for DGX Spark, `libcuvs-rtx40-cu132.so` /
+`libcuvs-rtx50-cu132.so` for the consumer x86_64 builds.
 
 ---
 

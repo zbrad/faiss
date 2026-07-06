@@ -1,6 +1,16 @@
-# Building FAISS-GPU Wheel for CUDA 13.2 and Python 3.14
+# Building FAISS-GPU Wheel for RTX 40 / RTX 50 (CUDA 13.2, Python 3.14)
 
-This guide walks through building a FAISS-GPU wheel for CUDA 13.2 targeting Python 3.14.
+This guide builds a FAISS-GPU wheel for consumer x86_64 GPUs, as two separate
+single-arch builds by generation:
+
+- **RTX 40** (Ada Lovelace, SM 89) — RTX 4080, RTX 4090 — `build_wheel_rtx40.sh`
+- **RTX 50** (Blackwell, SM 120) — RTX 5080, RTX 5090 — `build_wheel_rtx50.sh`
+
+This mirrors [zbrad/cuvs](https://github.com/zbrad/cuvs)'s own `build_rtx40.sh`
+/ `build_rtx50.sh` split, which dropped datacenter/professional architectures
+(Hopper, Blackwell DC, GB200, Ada professional parts) from its build matrix for
+the same reason: only build what's actually owned/verified. See
+[BUILD_gb10.md](BUILD_gb10.md) for the aarch64 / DGX Spark build.
 
 ## Quick start (WSL on Windows)
 
@@ -18,25 +28,23 @@ sudo apt update && sudo apt install -y intel-oneapi-mkl-devel
 Then build and verify (from PowerShell or inside WSL):
 
 ```powershell
-wsl -e bash gpu-cu/wsl/build.sh             # full build → build_output/ (log: /tmp/faiss_build.log)
-wsl -e bash gpu-cu/wsl/verify.sh --install  # install wheel + CPU/GPU sanity check
+wsl -e bash gpu-cu/scripts/build_wheel_rtx40.sh   # RTX 4080/4090, or build_wheel_rtx50.sh for RTX 5080/5090
+wsl -e bash gpu-cu/wsl/verify.sh --install        # install wheel + CPU/GPU sanity check
 ```
 
-`gpu-cu/wsl/env.sh` sets the WSL build environment and is sourced by the above.
-Override the CUDA version or GPU archs per invocation:
+`gpu-cu/wsl/env.sh` sets the WSL build environment. Override the CUDA version
+per invocation:
 
 ```bash
-FAISS_CUDA_VER=13.3 source gpu-cu/wsl/env.sh                  # build against CUDA 13.3
-wsl -e bash -c "CUDA_ARCHS='89' bash gpu-cu/wsl/build.sh"     # RTX 4090 only → faiss-gpu-cu132-sm89
+FAISS_CUDA_VER=13.3 source gpu-cu/wsl/env.sh
 ```
 
-The rest of this guide covers the general (non-WSL) build, options, and the
-aarch64 / DGX Spark pipeline.
+The rest of this guide covers the general (non-WSL) build and options.
 
 ## Prerequisites
 
 - CUDA 13.2 toolkit installed
-- Python 3.14 
+- Python 3.14
 - Build tools: CMake (>=3.24.0), SWIG (4.0), make, C++20 compiler
 - Dependencies: Intel MKL, numpy, setuptools
 - 8GB+ free disk space for build
@@ -81,12 +89,15 @@ Ensure the following are installed on your system:
 export CUDA_HOME=/usr/local/cuda-13.2  # Adjust if using different path
 export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
-export CUDA_ARCHS="75;80;86;89;90;120"  # Adjust for your GPU architectures
 ```
+
+`CUDA_ARCHS` is fixed per script now (`89` in `build_lib_rtx40.sh`, `120` in
+`build_lib_rtx50.sh`) rather than an overridable multi-arch list — pick the
+script matching your GPU generation instead of setting `CUDA_ARCHS`.
 
 ### 1.1 Set Intel MKL Paths (Required)
 
-`gpu-cu/scripts/build_lib_x86_64.sh` requires Intel MKL (`mkl_rt`) and may need explicit paths when auto-detection does not match your shell environment.
+`gpu-cu/scripts/build_lib_rtx40.sh` / `build_lib_rtx50.sh` require Intel MKL (`mkl_rt`) and may need explicit paths when auto-detection does not match your shell environment.
 
 **WSL/Linux bash accessing Windows oneAPI install:**
 ```bash
@@ -111,18 +122,14 @@ where /r "C:\Program Files (x86)\Intel\oneAPI\mkl" mkl_rt*
 
 Use the versioned MKL directory (for example `.../mkl/2025.3`) if `latest` symlink/path resolution behaves differently between shells.
 
-Available CUDA architectures (CUDA 13.2 supported):
-- `75`: Turing (RTX 2080, RTX 2060)
-- `80`: Ampere (A100, RTX 3090)
-- `86`: Ampere (RTX 3080 Ti, RTX 3070)
-- `89`: Ada Lovelace (RTX 4090, RTX 4080)
-- `90`: Hopper (H100)
-- `120`: Blackwell (GB200, B200, RTX 5090+)
-- `121`: Blackwell (GB10 Grace Blackwell / DGX Spark, aarch64)
+Supported GPU architectures (CUDA 13.2):
+- `89`: Ada Lovelace (RTX 4090, RTX 4080) — `build_lib_rtx40.sh`
+- `120`: Blackwell (RTX 5090, RTX 5080) — `build_lib_rtx50.sh`
+- `121`: Blackwell (GB10 Grace Blackwell / DGX Spark, aarch64) — see [BUILD_gb10.md](BUILD_gb10.md)
 
-> **Note:** Volta (70) and Turing (75) are **not supported** in CUDA 13.2 — NVIDIA removed
-> offline compilation and library support in CUDA 13.0. For older GPUs, use CUDA 12.x.
-> See: [CUDA 13.2 Release Notes - Deprecated Architectures](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#deprecated-architectures)
+Datacenter/professional architectures (Turing, Ampere, Hopper, Blackwell DC,
+GB200, Ada professional parts like L40/L40S/RTX 6000 Ada) are intentionally
+**not** built here — see [WHEEL_NAMING.md](WHEEL_NAMING.md) for the rationale.
 
 ### 2. Build the Wheel
 
@@ -130,23 +137,25 @@ Use one of the provided build scripts:
 
 **Automated build (recommended):**
 ```bash
-bash gpu-cu/scripts/build_wheel_x86_64.sh
+bash gpu-cu/scripts/build_wheel_rtx40.sh   # RTX 4080/4090
+# or
+bash gpu-cu/scripts/build_wheel_rtx50.sh   # RTX 5080/5090
 ```
 
 **Manual build:**
 ```bash
 # Step 1: Build the C++ library
-bash gpu-cu/scripts/build_lib_x86_64.sh
+bash gpu-cu/scripts/build_lib_rtx40.sh     # or build_lib_rtx50.sh
 
 # Step 2: Build Python bindings and wheel
-bash gpu-cu/scripts/build_pkg_x86_64.sh
+bash gpu-cu/scripts/build_pkg_rtx40.sh     # or build_pkg_rtx50.sh
 ```
 
 ### 3. Find the Built Wheel
 
-The wheel will be located in `build_output/` directory:
+The wheel will be located in `build_output_rtx40/` (or `build_output_rtx50/`):
 ```bash
-ls -lh build_output/faiss_gpu*.whl
+ls -lh build_output_rtx40/faiss_rtx40*.whl
 ```
 
 ## Installation
@@ -154,7 +163,7 @@ ls -lh build_output/faiss_gpu*.whl
 To install the built wheel:
 
 ```bash
-pip install build_output/faiss_gpu-*.whl
+pip install build_output_rtx40/faiss_rtx40-*.whl
 ```
 
 Verify installation:
@@ -162,27 +171,9 @@ Verify installation:
 python -c "import faiss; print(faiss.__version__); print(faiss.gpuGetNumDevices())"
 ```
 
-## Customization Options
-
-During build, you can customize:
-
-- **GPU Architectures**: Set `CUDA_ARCHS` environment variable (space/semicolon separated)
-  - Examples:
-    - `CUDA_ARCHS="120"` - RTX 5090 (Blackwell) only
-    - `CUDA_ARCHS="121-real"` - DGX Spark GB10 (SM 121, aarch64) only — see DGX Spark build below
-    - `CUDA_ARCHS="90"` - H100 (Hopper) only
-    - `CUDA_ARCHS="90;120"` - Hopper + Blackwell
-    - `CUDA_ARCHS="75;80;86;89;90;120"` - All supported (default)
-
-## DGX Spark / aarch64 build
-
-This guide covers x86_64. For the ARM build (NVIDIA DGX Spark, GB10 Grace
-Blackwell, SM 121 — OpenBLAS + cuVS instead of MKL/AVX), see the dedicated
-**[BUILD_arch_aarch64.md](BUILD_arch_aarch64.md)** (`make build-aarch64`).
-
 ## More options
 
-- **Optimization Level**: 
+- **Optimization Level**:
   - `generic`: Baseline optimization
   - `avx2`: AVX2 SIMD optimizations (default)
   - `avx512`: AVX512 optimizations
@@ -198,15 +189,14 @@ Blackwell, SM 121 — OpenBLAS + cuVS instead of MKL/AVX), see the dedicated
 
 **"nvcc architecture mismatch"**
 - List available architectures: `nvidia-smi --query-gpu=compute_cap --format=csv,noheader --format=csv`
-- Convert to CUDA_ARCHS format (e.g., 8.0 → 80)
+- Confirm it matches the script you're running (89 for rtx40, 120 for rtx50)
 
 **"Python development headers not found"**
 - Install: `sudo apt install python3.14-dev` (or equivalent for your system)
 - Or use conda environment with python-dev package
 
 **"Build runs out of memory"**
-- Reduce parallel jobs: `make -j4` instead of `-j$(nproc)`
-- Edit build scripts and change `$(nproc)` to desired number
+- Reduce parallel jobs: `FAISS_BUILD_JOBS=4 bash gpu-cu/scripts/build_wheel_rtx40.sh`
 
 **"swig: command not found"**
 - Install: `conda install swig=4.0` or `sudo apt install swig`
@@ -220,7 +210,7 @@ Blackwell, SM 121 — OpenBLAS + cuVS instead of MKL/AVX), see the dedicated
 
 ## Performance Notes
 
-- First build takes 10-30 minutes depending on GPU count and machine
+- First build takes 10-30 minutes depending on machine
 - Subsequent builds use CMake cache for faster incremental builds
 - Wheel size: ~300-500MB (includes GPU kernels)
 
@@ -242,5 +232,5 @@ python bench_*.py
 bash gpu-cu/scripts/clean_build.sh
 
 # Remove everything including wheels
-rm -rf build/ _build* _libfaiss_stage/ build_output/
+rm -rf build/ _build* _libfaiss_stage* build_output*/
 ```

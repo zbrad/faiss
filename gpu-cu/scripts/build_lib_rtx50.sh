@@ -1,11 +1,16 @@
-﻿#!/bin/bash
+#!/bin/bash
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 #
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 #
-# Build C++ library (libfaiss) — x86_64 (Intel MKL, AVX2/AVX512)
-# Produces libfaiss-x86_64-${FAISS_CUDA_TAG}.so / libfaiss_c-x86_64-${FAISS_CUDA_TAG}.so
+# Build C++ library (libfaiss) — RTX 50 / Blackwell (x86_64, Intel MKL, AVX2/AVX512)
+# Produces libfaiss-rtx50-${FAISS_CUDA_TAG}.so / libfaiss_c-rtx50-${FAISS_CUDA_TAG}.so
+#
+# Single-arch build targeting owned/verified consumer hardware (RTX 5080/5090,
+# SM 120) only -- mirrors zbrad/cuvs's build_rtx50.sh, which dropped datacenter
+# Ada/Hopper/Blackwell-DC archs from its own build matrix for the same reason.
+# See build_lib_rtx40.sh for the Ada Lovelace (RTX 4080/4090) build.
 
 set -e
 
@@ -18,10 +23,16 @@ source "$SCRIPT_DIR/cuda_env.sh"
 
 # Environment setup
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
-CUDA_ARCHS="${CUDA_ARCHS:-75;80;86;89;90;120}"
+CUDA_ARCHS="120"
 PYTHON="${PYTHON:-python3}"
+# Resolve to an absolute path: CMake's find_package(Python) can otherwise
+# resolve a bare "python3" differently than the shell just did (e.g. picking
+# up a different interpreter from a conda env on PATH), causing
+# Development.Module/NumPy detection to fail against a Python that lacks dev
+# headers.
+PYTHON="$(command -v "$PYTHON")" || { echo "ERROR: Python interpreter '$PYTHON' not found on PATH. Set PYTHON to an absolute path." >&2; exit 1; }
 FAISS_ENABLE_CUVS="${FAISS_ENABLE_CUVS:-ON}"
-BUILD_DIR="_build"
+BUILD_DIR="_build_rtx50"
 
 # WSL: ensure CUDA is on PATH
 export PATH="$CUDA_HOME/bin:$PATH"
@@ -53,17 +64,15 @@ if [ -n "${CONDA_PREFIX:-}" ]; then
 fi
 
 echo "========================================="
-echo "Building FAISS C++ Library (libfaiss)"
+echo "Building FAISS C++ Library (RTX 50 / Blackwell)"
 echo "========================================="
 echo "CUDA_HOME: $CUDA_HOME"
-echo "CUDA_ARCHS: $CUDA_ARCHS"
+echo "CUDA_ARCHS: $CUDA_ARCHS (SM 120, Blackwell)"
 echo "FAISS_ENABLE_CUVS: $FAISS_ENABLE_CUVS"
 echo "Python: $PYTHON"
 echo "CONDA_PREFIX: ${CONDA_PREFIX:-<unset>}"
 echo "MKL_ROOT: $MKL_ROOT"
 echo ""
-
-# Set up environment (PATH already set above)
 
 # Verify CUDA
 echo "[1/3] Verifying CUDA installation..."
@@ -130,8 +139,8 @@ cmake -B "$BUILD_DIR" \
     -DLAPACK_LIBRARIES="$MKL_LIB" \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DCMAKE_BUILD_TYPE=Release \
-    -DFAISS_OUTPUT_NAME=faiss-x86_64-${FAISS_CUDA_TAG} \
-    -DFAISS_C_OUTPUT_NAME=faiss_c-x86_64-${FAISS_CUDA_TAG} \
+    -DFAISS_OUTPUT_NAME=faiss-rtx50-${FAISS_CUDA_TAG} \
+    -DFAISS_C_OUTPUT_NAME=faiss_c-rtx50-${FAISS_CUDA_TAG} \
     -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
     .
 
@@ -143,21 +152,21 @@ echo "Using $num_jobs parallel jobs"
 make -C "$BUILD_DIR" -j"$num_jobs" faiss faiss_avx2 faiss_avx512 faiss_c faiss_c_avx2 faiss_c_avx512
 
 # Stage libraries for next build step
-mkdir -p _libfaiss_stage/
-cmake --install "$BUILD_DIR" --prefix _libfaiss_stage/ --config Release
+mkdir -p _libfaiss_stage_rtx50/
+cmake --install "$BUILD_DIR" --prefix _libfaiss_stage_rtx50/ --config Release
 
 # cmake --install omits avx512 variants; copy them manually.
 # Note: FAISS_OUTPUT_NAME only renames the base lib; SIMD variants keep their
 # conventional names (libfaiss_avx2.so / libfaiss_avx512.so).
-cp -f "$BUILD_DIR/faiss/libfaiss_avx512.so" _libfaiss_stage/lib/ 2>/dev/null || true
-cp -f "$BUILD_DIR/c_api/libfaiss_c_avx512.so" _libfaiss_stage/lib/ 2>/dev/null || true
+cp -f "$BUILD_DIR/faiss/libfaiss_avx512.so" _libfaiss_stage_rtx50/lib/ 2>/dev/null || true
+cp -f "$BUILD_DIR/c_api/libfaiss_c_avx512.so" _libfaiss_stage_rtx50/lib/ 2>/dev/null || true
 
 echo ""
 echo "========================================="
-echo "✓ C++ library build complete (x86_64, CUDA $FAISS_CUDA_VER)"
+echo "✓ C++ library build complete (RTX 50, CUDA $FAISS_CUDA_VER)"
 echo "========================================="
 echo "Libraries built in: $BUILD_DIR/faiss/"
-echo "  libfaiss-x86_64-${FAISS_CUDA_TAG}.so    (main C++ library)"
-echo "  libfaiss_c-x86_64-${FAISS_CUDA_TAG}.so  (C API wrapper)"
+echo "  libfaiss-rtx50-${FAISS_CUDA_TAG}.so    (main C++ library)"
+echo "  libfaiss_c-rtx50-${FAISS_CUDA_TAG}.so  (C API wrapper)"
 echo "  libfaiss_avx2.so / libfaiss_avx512.so  (SIMD variants)"
-echo "Staged in: _libfaiss_stage/"
+echo "Staged in: _libfaiss_stage_rtx50/"

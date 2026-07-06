@@ -1,10 +1,10 @@
-﻿#!/bin/bash
+#!/bin/bash
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 #
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 #
-# Package FAISS wheel
+# Package FAISS wheel — RTX 50 / Blackwell
 
 set -e
 
@@ -16,17 +16,23 @@ cd "$FAISS_ROOT"
 source "$SCRIPT_DIR/cuda_env.sh"
 
 PYTHON="${PYTHON:-python3}"
-BUILD_OUTPUT_DIR="build_output"
-# Package name: gpu-${FAISS_CUDA_TAG}, plus -sm<arch> when this build targets a
-# single GPU arch (e.g. CUDA_ARCHS=89 → faiss-gpu-cu132-sm89). Multi-arch builds
-# stay arch-generic; the wheel's manylinux_*_x86_64 platform tag selects x86 at
-# install time.
-FAISS_VARIANT="${FAISS_VARIANT:-gpu-${FAISS_CUDA_TAG}$(faiss_sm_suffix)}"
+# Resolve to an absolute path: CMake's find_package(Python) can otherwise
+# resolve a bare "python3" differently than the shell just did (e.g. picking
+# up a different interpreter from a conda env on PATH), causing
+# Development.Module/NumPy detection to fail against a Python that lacks dev
+# headers.
+PYTHON="$(command -v "$PYTHON")" || { echo "ERROR: Python interpreter '$PYTHON' not found on PATH. Set PYTHON to an absolute path." >&2; exit 1; }
+BUILD_OUTPUT_DIR="build_output_rtx50"
+# Codename naming (matches libfaiss-rtx50-*.so / libcuvs-rtx50-*.so):
+# faiss-rtx50-${FAISS_CUDA_TAG}. The wheel's manylinux_*_x86_64 platform tag
+# still selects x86_64 at install time.
+export CUDA_ARCHS="120"
+FAISS_VARIANT="${FAISS_VARIANT:-rtx50-${FAISS_CUDA_TAG}}"
 PY_VER=$(${PYTHON} -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
-BUILD_DIR="_build_python_${PY_VER}"
+BUILD_DIR="_build_python_rtx50_${PY_VER}"
 
 echo "========================================="
-echo "Packaging FAISS Wheel"
+echo "Packaging FAISS Wheel (RTX 50)"
 echo "========================================="
 _wheel_name="faiss${FAISS_VARIANT:+-$FAISS_VARIANT}"
 echo "Package name   : $_wheel_name"
@@ -35,7 +41,7 @@ echo ""
 
 # Verify build exists
 if [ ! -d "$BUILD_DIR" ]; then
-    echo "ERROR: Build directory not found. Run build_pkg_x86_64.sh first."
+    echo "ERROR: Build directory not found. Run build_pkg_rtx50.sh first."
     exit 1
 fi
 
@@ -62,7 +68,7 @@ wheel_basename=$(basename "$wheel_file")
 cd ..
 if command -v auditwheel &> /dev/null; then
     echo "[3/3] Repairing wheel with auditwheel..."
-    export LD_LIBRARY_PATH="${FAISS_ROOT}/_libfaiss_stage/lib:/opt/intel/oneapi/mkl/latest/lib:${CUDA_HOME}/lib64:$LD_LIBRARY_PATH"
+    export LD_LIBRARY_PATH="${FAISS_ROOT}/_libfaiss_stage_rtx50/lib:/opt/intel/oneapi/mkl/latest/lib:${CUDA_HOME}/lib64:$LD_LIBRARY_PATH"
     auditwheel repair "$BUILD_OUTPUT_DIR/$wheel_basename" \
         --exclude libcudart.so.13 \
         --exclude libcublas.so.13 \
@@ -78,7 +84,7 @@ fi
 
 echo ""
 echo "========================================="
-echo "✓ Wheel packaging complete"
+echo "✓ Wheel packaging complete (RTX 50)"
 echo "========================================="
 echo "Wheel: $BUILD_OUTPUT_DIR/repaired/$wheel_basename"
 echo ""

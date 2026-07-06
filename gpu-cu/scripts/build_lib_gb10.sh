@@ -4,8 +4,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 #
-# Build C++ library (libfaiss) for aarch64 / DGX Spark (SM 121 — GB10 Grace Blackwell)
-# Produces libfaiss-aarch64-${FAISS_CUDA_TAG}.so / libfaiss_c-aarch64-${FAISS_CUDA_TAG}.so
+# Build C++ library (libfaiss) for GB10 / DGX Spark (SM 121 — GB10 Grace Blackwell)
+# Produces libfaiss-gb10-${FAISS_CUDA_TAG}.so / libfaiss_c-gb10-${FAISS_CUDA_TAG}.so
 # Uses libcuvs-gb10 from github.com/zbrad/cuvs
 
 set -e
@@ -21,8 +21,15 @@ source "$SCRIPT_DIR/cuda_env.sh"
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
 CUDA_ARCHS="121-real"
 PYTHON="${PYTHON:-python3}"
+# Resolve to an absolute path: CMake's find_package(Python) can otherwise
+# resolve a bare "python3" differently than the shell just did (e.g. picking
+# up a different interpreter from a conda env on PATH), causing
+# Development.Module/NumPy detection to fail against a Python that lacks dev
+# headers. Not directly invoked in this script, but kept consistent with the
+# other gpu-cu scripts since build_wheel_gb10.sh doesn't export it through.
+PYTHON="$(command -v "$PYTHON")" || { echo "ERROR: Python interpreter '$PYTHON' not found on PATH. Set PYTHON to an absolute path." >&2; exit 1; }
 FAISS_ENABLE_CUVS="${FAISS_ENABLE_CUVS:-ON}"
-BUILD_DIR="_build_aarch64"
+BUILD_DIR="_build_gb10"
 
 # Redirect all output to log file inside build dir
 mkdir -p "$BUILD_DIR"
@@ -37,7 +44,7 @@ export PATH="$CUDA_HOME/bin:$PATH"
 export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
 
 echo "========================================="
-echo "Building FAISS C++ Library (DGX Spark)"
+echo "Building FAISS C++ Library (GB10 / DGX Spark)"
 echo "========================================="
 echo "CUDA_HOME:        $CUDA_HOME"
 echo "CUDA_ARCHS:       $CUDA_ARCHS  (SM 121 — GB10 Grace Blackwell)"
@@ -94,8 +101,8 @@ cmake -B "$BUILD_DIR" \
     -DLAPACK_LIBRARIES="$OPENBLAS_LIB" \
     -DCMAKE_INSTALL_LIBDIR=lib \
     -DCMAKE_BUILD_TYPE=Release \
-    -DFAISS_OUTPUT_NAME=faiss-aarch64-${FAISS_CUDA_TAG} \
-    -DFAISS_C_OUTPUT_NAME=faiss_c-aarch64-${FAISS_CUDA_TAG} \
+    -DFAISS_OUTPUT_NAME=faiss-gb10-${FAISS_CUDA_TAG} \
+    -DFAISS_C_OUTPUT_NAME=faiss_c-gb10-${FAISS_CUDA_TAG} \
     -DFAISS_CUVS_GB10_LIBRARY="${CUVS_DIR}/libcuvs-gb10-${FAISS_CUDA_TAG}.so" \
     -Dcuvs_DIR="$CUVS_DIR" \
     -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
@@ -110,16 +117,16 @@ echo "Using $num_jobs parallel jobs"
 make -C "$BUILD_DIR" -j"$num_jobs" faiss faiss_c
 
 # Stage libraries for next build step
-mkdir -p _libfaiss_stage_aarch64/
-cmake --install "$BUILD_DIR" --prefix _libfaiss_stage_aarch64/ --config Release
+mkdir -p _libfaiss_stage_gb10/
+cmake --install "$BUILD_DIR" --prefix _libfaiss_stage_gb10/ --config Release
 
 echo ""
 echo "========================================="
-echo "✓ DGX Spark C++ library build complete"
+echo "✓ GB10 / DGX Spark C++ library build complete"
 echo "========================================="
 echo "Architecture: SM 121 (GB10 Grace Blackwell)"
 echo "cuVS library: libcuvs-gb10-${FAISS_CUDA_TAG}.so"
 echo "Libraries built in: $BUILD_DIR/faiss/"
-echo "  libfaiss-aarch64-${FAISS_CUDA_TAG}.so  (main C++ library)"
-echo "  libfaiss_c-aarch64-${FAISS_CUDA_TAG}.so  (C API wrapper)"
-echo "Staged in: _libfaiss_stage_aarch64/"
+echo "  libfaiss-gb10-${FAISS_CUDA_TAG}.so  (main C++ library)"
+echo "  libfaiss_c-gb10-${FAISS_CUDA_TAG}.so  (C API wrapper)"
+echo "Staged in: _libfaiss_stage_gb10/"

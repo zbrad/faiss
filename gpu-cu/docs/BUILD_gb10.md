@@ -1,12 +1,12 @@
-# Building FAISS-GPU Wheel for aarch64 / NVIDIA DGX Spark
+# Building FAISS-GPU Wheel for GB10 / NVIDIA DGX Spark
 
 This guide builds a FAISS-GPU wheel for **aarch64** (ARM), targeting the NVIDIA
 DGX Spark — GB10 Grace Blackwell Superchip, compute capability **SM 121**.
 
-Unlike the x86_64 build, ARM has **no Intel MKL**: this pipeline uses **OpenBLAS**
-for CPU BLAS and **NVIDIA cuVS** (the `libcuvs-gb10` build from
+Unlike the RTX (x86_64) builds, ARM has **no Intel MKL**: this pipeline uses
+**OpenBLAS** for CPU BLAS and **NVIDIA cuVS** (the `libcuvs-gb10` build from
 [zbrad/cuvs](https://github.com/zbrad/cuvs)) for GPU acceleration. See
-[BUILD_arch_x86_64.md](BUILD_arch_x86_64.md) for the x86_64 build.
+[BUILD_rtx.md](BUILD_rtx.md) for the RTX 40 / RTX 50 (x86_64) builds.
 
 ## Prerequisites
 
@@ -22,7 +22,7 @@ for CPU BLAS and **NVIDIA cuVS** (the `libcuvs-gb10` build from
 
 ## cuVS-gb10 dependency
 
-The aarch64 build links the SM 121 cuVS library `libcuvs-gb10-cu132.so`, built
+The GB10 build links the SM 121 cuVS library `libcuvs-gb10-cu132.so`, built
 from the [zbrad/cuvs](https://github.com/zbrad/cuvs) fork (GPU-codename naming;
 see that repo's `gpu-build/docs/WHEEL_NAMING.md`). Build it first:
 
@@ -45,42 +45,40 @@ export CUVS_DIR=/path/to/cuvs/cpp/build
 
 ```bash
 # Full build: C++ libs → SWIG bindings → wheel
-make build-aarch64
-# or directly:
-bash gpu-cu/scripts/build_wheel_aarch64.sh
+bash gpu-cu/scripts/build_wheel_gb10.sh
 ```
 
-Output wheel lands in `build_output_aarch64/` (and `build_output_aarch64/repaired/`
+Output wheel lands in `build_output_gb10/` (and `build_output_gb10/repaired/`
 after `auditwheel`). Install and check:
 
 ```bash
-pip install build_output_aarch64/repaired/faiss_gpu_cu132_sm121-*.whl
+pip install build_output_gb10/repaired/faiss_gb10_cu132-*.whl
 python -c "import faiss; print(faiss.__version__, faiss.get_num_gpus())"
 ```
 
 ## Build steps (manual)
 
 ```bash
-bash gpu-cu/scripts/build_lib_aarch64.sh      # libfaiss-aarch64-cu132.so + libfaiss_c-aarch64-cu132.so
-bash gpu-cu/scripts/build_pkg_aarch64.sh      # SWIG Python bindings (generic opt-level, no AVX)
-bash gpu-cu/scripts/package_wheel_aarch64.sh  # wheel + auditwheel repair
+bash gpu-cu/scripts/build_lib_gb10.sh      # libfaiss-gb10-cu132.so + libfaiss_c-gb10-cu132.so
+bash gpu-cu/scripts/build_pkg_gb10.sh      # SWIG Python bindings (generic opt-level, no AVX)
+bash gpu-cu/scripts/package_wheel_gb10.sh  # wheel + auditwheel repair
 ```
 
 | Script | Purpose |
 |--------|---------|
-| `build_lib_aarch64.sh` | C++ library — SM 121, OpenBLAS, links `libcuvs-gb10-cu132.so` |
-| `build_pkg_aarch64.sh` | SWIG bindings (generic opt-level; ARM has no AVX) |
-| `package_wheel_aarch64.sh` | Wheel packaging + `auditwheel repair` (manylinux aarch64) |
-| `build_wheel_aarch64.sh` | Unified orchestrator (`all` / `lib` / `pkg` / `wheel` / `clean` / `check`) |
+| `build_lib_gb10.sh` | C++ library — SM 121, OpenBLAS, links `libcuvs-gb10-cu132.so` |
+| `build_pkg_gb10.sh` | SWIG bindings (generic opt-level; ARM has no AVX) |
+| `package_wheel_gb10.sh` | Wheel packaging + `auditwheel repair` (manylinux aarch64) |
+| `build_wheel_gb10.sh` | Unified orchestrator (`all` / `lib` / `pkg` / `wheel` / `clean` / `check`) |
 
 ## CUDA version selection
 
-The CUDA version is a single input, shared with the x86_64 pipeline via
+The CUDA version is a single input, shared with the RTX pipelines via
 `gpu-cu/scripts/cuda_env.sh`. Specify it per build (the tag is derived):
 
 ```bash
-make build-aarch64 FAISS_CUDA_VER=13.3        # → faiss-gpu-cu133-sm121
-FAISS_CUDA_TAG=cu133 bash gpu-cu/scripts/build_wheel_aarch64.sh
+FAISS_CUDA_VER=13.3 bash gpu-cu/scripts/build_wheel_gb10.sh   # → faiss-gb10-cu133
+FAISS_CUDA_TAG=cu133 bash gpu-cu/scripts/build_wheel_gb10.sh
 ```
 
 On a host with multiple toolkits, `CUDA_HOME` auto-resolves to
@@ -91,14 +89,13 @@ On a host with multiple toolkits, `CUDA_HOME` auto-resolves to
 
 | Artifact | Location | Notes |
 |----------|----------|-------|
-| `libfaiss-aarch64-cu132.so` | `_libfaiss_stage_aarch64/lib/` | Main FAISS GPU library, SM 121 (`FAISS_OUTPUT_NAME`) |
-| `libfaiss_c-aarch64-cu132.so` | `_libfaiss_stage_aarch64/lib/` | C API wrapper (`FAISS_C_OUTPUT_NAME`) |
-| `faiss-gpu-cu132-sm121` wheel | `build_output_aarch64/` | Single-arch wheel; `manylinux_*_aarch64` platform tag |
+| `libfaiss-gb10-cu132.so` | `_libfaiss_stage_gb10/lib/` | Main FAISS GPU library, SM 121 (`FAISS_OUTPUT_NAME`) |
+| `libfaiss_c-gb10-cu132.so` | `_libfaiss_stage_gb10/lib/` | C API wrapper (`FAISS_C_OUTPUT_NAME`) |
+| `faiss-gb10-cu132` wheel | `build_output_gb10/` | Single-arch wheel; `manylinux_*_aarch64` platform tag |
 | links `libcuvs-gb10-cu132.so` | `zbrad/cuvs` build | SM 121 native cuVS |
 
-The `cu132`/`sm121` portions track `FAISS_CUDA_TAG` and `CUDA_ARCHS`. Because the
-DGX Spark build always targets a single GPU arch (SM 121), the package name
-carries the `-sm121` suffix; see [WHEEL_NAMING.md](WHEEL_NAMING.md).
+The `cu132` portion tracks `FAISS_CUDA_TAG`; see [WHEEL_NAMING.md](WHEEL_NAMING.md)
+for the full version/naming scheme.
 
 ## Troubleshooting
 
@@ -117,12 +114,12 @@ carries the `-sm121` suffix; see [WHEEL_NAMING.md](WHEEL_NAMING.md).
 - `sudo apt install python3-dev`
 
 **Build runs out of memory**
-- Reduce parallelism: `FAISS_BUILD_JOBS=4 make build-aarch64`
+- Reduce parallelism: `FAISS_BUILD_JOBS=4 bash gpu-cu/scripts/build_wheel_gb10.sh`
 
 ## Cleaning up
 
 ```bash
-bash gpu-cu/scripts/build_wheel_aarch64.sh clean   # remove aarch64 build dirs
-# or, both arches:
+bash gpu-cu/scripts/build_wheel_gb10.sh clean   # remove GB10 build dirs
+# or, all arches:
 bash gpu-cu/scripts/clean_build.sh
 ```
