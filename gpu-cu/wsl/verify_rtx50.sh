@@ -1,28 +1,28 @@
 #!/bin/bash
-# Verify the installed faiss-gpu-${FAISS_CUDA_TAG} wheel works (CPU + GPU).
+# Verify the installed faiss-rtx50-${FAISS_CUDA_TAG} wheel works (CPU + GPU).
 # Usage (from PowerShell):
-#   wsl -e bash gpu-cu/wsl/verify.sh
+#   wsl -e bash gpu-cu/wsl/verify_rtx50.sh
 # To install first, pass --install:
-#   wsl -e bash gpu-cu/wsl/verify.sh --install
+#   wsl -e bash gpu-cu/wsl/verify_rtx50.sh --install
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/env.sh"
+source "$SCRIPT_DIR/env_rtx50.sh"
 
-VARIANT="${FAISS_VARIANT:-gpu-${FAISS_CUDA_TAG}$(faiss_sm_suffix)}"
+VARIANT="${FAISS_VARIANT:-rtx50-${FAISS_CUDA_TAG}}"
 # pip normalises hyphens to underscores in wheel filenames
 WHEEL_PREFIX="faiss_${VARIANT//-/_}"
-WHEEL=$(ls "$FAISS_ROOT"/build_output/${WHEEL_PREFIX}-*.whl 2>/dev/null | head -1)
+WHEEL=$(ls "$FAISS_ROOT"/build_output_rtx50/${WHEEL_PREFIX}-*.whl 2>/dev/null | head -1)
 
 # Fallback: plain "faiss" wheel (no variant)
 if [[ -z "$WHEEL" ]]; then
-    WHEEL=$(ls "$FAISS_ROOT"/build_output/faiss-*.whl 2>/dev/null | head -1)
+    WHEEL=$(ls "$FAISS_ROOT"/build_output_rtx50/faiss-*.whl 2>/dev/null | head -1)
 fi
 
 if [[ "${1:-}" == "--install" ]]; then
     if [[ -z "$WHEEL" ]]; then
-        echo "ERROR: No wheel found in $FAISS_ROOT/build_output/"
+        echo "ERROR: No wheel found in $FAISS_ROOT/build_output_rtx50/"
         exit 1
     fi
     echo "Installing $WHEEL ..."
@@ -31,7 +31,7 @@ fi
 
 echo ""
 echo "========================================="
-echo " FAISS verify"
+echo " FAISS verify (RTX 50)"
 echo "========================================="
 python3 - <<'EOF'
 import faiss

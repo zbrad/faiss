@@ -25,18 +25,23 @@ echo "deb [signed-by=/usr/share/keyrings/intel-sw-products.gpg] https://apt.repo
 sudo apt update && sudo apt install -y intel-oneapi-mkl-devel
 ```
 
-Then build and verify (from PowerShell or inside WSL):
+Then build and verify (from PowerShell or inside WSL) — pick the pair
+matching your GPU generation:
 
 ```powershell
-wsl -e bash gpu-cu/scripts/build_wheel_rtx40.sh   # RTX 4080/4090, or build_wheel_rtx50.sh for RTX 5080/5090
-wsl -e bash gpu-cu/wsl/verify.sh --install        # install wheel + CPU/GPU sanity check
+wsl -e bash gpu-cu/wsl/build_rtx40.sh             # RTX 4080/4090
+wsl -e bash gpu-cu/wsl/verify_rtx40.sh --install  # install wheel + CPU/GPU sanity check
+
+wsl -e bash gpu-cu/wsl/build_rtx50.sh             # RTX 5080/5090
+wsl -e bash gpu-cu/wsl/verify_rtx50.sh --install
 ```
 
-`gpu-cu/wsl/env.sh` sets the WSL build environment. Override the CUDA version
-per invocation:
+`gpu-cu/wsl/env_rtx40.sh` / `env_rtx50.sh` set the WSL build environment
+(sourced automatically by the matching `build_*.sh`). Override the CUDA
+version per invocation:
 
 ```bash
-FAISS_CUDA_VER=13.3 source gpu-cu/wsl/env.sh
+FAISS_CUDA_VER=13.3 source gpu-cu/wsl/env_rtx40.sh
 ```
 
 The rest of this guide covers the general (non-WSL) build and options.

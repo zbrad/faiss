@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""Quick wheel content inspector."""
+"""Quick wheel content inspector.
+
+Usage: python3 check_wheel.py [dir]
+Defaults to build_output_rtx40 (pass build_output_rtx50 for the other build).
+"""
 import zipfile, sys, pathlib
 
-whl_dir = pathlib.Path("/mnt/f/GitHub/faiss/build_output")
+whl_dir = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "/mnt/f/GitHub/faiss/build_output_rtx40")
 wheels = list(whl_dir.glob("*.whl"))
 if not wheels:
     print("No wheel found in", whl_dir)

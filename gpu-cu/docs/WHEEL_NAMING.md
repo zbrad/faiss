@@ -112,13 +112,9 @@ suffix, since the codename alone already implies exactly one arch.
 | CPU-only build | `cpu` | `faiss-cpu` | Exact match for active PyPI package |
 | Upstream canonical/untagged | *(unset)* | `faiss` | Plain upstream name |
 
-`gpu-cu/wsl/env.sh` and `gpu-cu/wsl/verify.sh` (the Windows/WSL convenience
-layer) still derive a generic `gpu-${FAISS_CUDA_TAG}[-sm<arch>]` variant via
-the `faiss_sm_suffix` helper in `cuda_env.sh` rather than a codename — that
-path assumes a portable multi-arch x86_64 build that no longer has a backing
-script (`build_lib_x86_64.sh` was replaced by the rtx40/rtx50 split) and
-depends on a root `Makefile` target (`make build`) that doesn't exist in this
-checkout. It predates this rework and hasn't been reconciled with it.
+The Windows/WSL convenience layer (`gpu-cu/wsl/{env,build,verify}_rtx40.sh` /
+`_rtx50.sh`) mirrors this same codename scheme and split — see
+[the WSL section below](#windows--wsl-convenience-scripts).
 
 ## Selecting / bumping the CUDA version (cu132 ↔ cu133)
 
@@ -143,6 +139,29 @@ resolves it to `/usr/local/cuda-${FAISS_CUDA_VER}` if that directory exists
 `cuda-13.3` installed, `FAISS_CUDA_VER=13.3` builds against the 13.3 toolkit
 automatically. If the `nvcc` found on `PATH` reports a different version than
 requested, the scripts print a warning so you can correct `CUDA_HOME`.
+
+---
+
+## Windows / WSL convenience scripts
+
+`gpu-cu/wsl/` mirrors the rtx40/rtx50 split for Windows users building inside
+WSL 2:
+
+| Script | Purpose |
+|--------|---------|
+| `env_rtx40.sh` / `env_rtx50.sh` | Sets `CUDA_ARCHS` (89/120, fixed), `FAISS_VARIANT` (`rtx40-`/`rtx50-${FAISS_CUDA_TAG}`), MKL paths |
+| `build_rtx40.sh` / `build_rtx50.sh` | Sources the matching `env_*.sh`, calls `gpu-cu/scripts/build_wheel_rtx40.sh` / `build_wheel_rtx50.sh` directly |
+| `verify_rtx40.sh` / `verify_rtx50.sh` | Installs + smoke-tests (CPU and GPU) the built wheel from `build_output_rtx40/` / `build_output_rtx50/` |
+| `check_wheel.py [dir]` | Inspects a wheel's bundled `.so` files; defaults to `build_output_rtx40` |
+
+`build_rtx40.sh`/`build_rtx50.sh` used to shell out to `make build`, which
+depended on a root `Makefile` target that does not exist in this checkout (a
+pre-existing gap, not introduced by this rework) -- fixed to call the real
+`build_wheel_{rtx40,rtx50}.sh` scripts directly instead. `FAISS_ROOT` still
+defaults to a Windows drive-mount path (`/mnt/f/GitHub/faiss`); override it if
+your checkout differs. This WSL layer has not been tested against real
+Windows/WSL hardware as part of this rework (only read through for
+correctness) -- verify it end-to-end before relying on it.
 
 ---
 

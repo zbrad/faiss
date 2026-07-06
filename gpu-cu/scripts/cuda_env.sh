@@ -53,20 +53,3 @@ if command -v nvcc >/dev/null 2>&1; then
     fi
     unset _faiss_nvcc_ver
 fi
-
-# Echo "-sm<arch>" when the build targets exactly one GPU arch, else nothing.
-# Not used by the gb10/rtx40/rtx50 scripts (those hardcode a single arch and
-# codename per script, so this suffix would be redundant) -- kept only for
-# gpu-cu/wsl/env.sh and gpu-cu/wsl/verify.sh, which still assume a generic
-# multi-arch x86_64 build. Reads CUDA_ARCHS (arg overrides), tolerant of
-# ";"/","/"\;" separators and -real/-virtual suffixes.
-faiss_sm_suffix() {
-    local archs="${1:-${CUDA_ARCHS:-}}"
-    local uniq
-    uniq=$(printf '%s' "$archs" \
-        | sed -E 's/[\\,;]+/\n/g; s/-(real|virtual)//g; s/[[:blank:]]//g' \
-        | sed '/^$/d' | sort -u)
-    if [ -n "$uniq" ] && [ "$(printf '%s\n' "$uniq" | wc -l | tr -d ' ')" -eq 1 ]; then
-        printf -- '-sm%s' "$uniq"
-    fi
-}
