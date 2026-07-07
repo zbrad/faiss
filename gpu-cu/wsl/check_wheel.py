@@ -2,11 +2,14 @@
 """Quick wheel content inspector.
 
 Usage: python3 check_wheel.py [dir]
-Defaults to build_output_rtx40 (pass build_output_rtx50 for the other build).
+Defaults to <repo_root>/build_output_rtx40, where repo_root is inferred from
+this script's own location (not a hardcoded drive-letter guess). Pass
+build_output_rtx50 for the other build.
 """
 import zipfile, sys, pathlib
 
-whl_dir = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "/mnt/f/GitHub/faiss/build_output_rtx40")
+_repo_root = pathlib.Path(__file__).resolve().parents[2]  # wsl/ -> gpu-cu/ -> repo root
+whl_dir = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else str(_repo_root / "build_output_rtx40"))
 wheels = list(whl_dir.glob("*.whl"))
 if not wheels:
     print("No wheel found in", whl_dir)

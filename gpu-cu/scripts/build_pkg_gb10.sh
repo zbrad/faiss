@@ -28,7 +28,8 @@ PY_VER=$(${PYTHON} -c "import sys; print(f'{sys.version_info.major}{sys.version_
 BUILD_DIR="_build_python_gb10_${PY_VER}"
 
 # cuVS-gb10
-CUVS_REPO="${CUVS_REPO:-/home/zbrad/gh/cuvs}"
+GITHUB_ROOT="${GITHUB_ROOT:-$(dirname "$FAISS_ROOT")}"
+CUVS_REPO="${CUVS_REPO:-${GITHUB_ROOT}/cuvs}"
 CUVS_DIR="${CUVS_DIR:-${CUVS_REPO}/cpp/build}"
 
 CMAKE_PREFIX_PATH="$CUDA_HOME"

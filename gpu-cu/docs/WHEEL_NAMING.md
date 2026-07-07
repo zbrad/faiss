@@ -157,11 +157,12 @@ WSL 2:
 `build_rtx40.sh`/`build_rtx50.sh` used to shell out to `make build`, which
 depended on a root `Makefile` target that does not exist in this checkout (a
 pre-existing gap, not introduced by this rework) -- fixed to call the real
-`build_wheel_{rtx40,rtx50}.sh` scripts directly instead. `FAISS_ROOT` still
-defaults to a Windows drive-mount path (`/mnt/f/GitHub/faiss`); override it if
-your checkout differs. This WSL layer has not been tested against real
-Windows/WSL hardware as part of this rework (only read through for
-correctness) -- verify it end-to-end before relying on it.
+`build_wheel_{rtx40,rtx50}.sh` scripts directly instead. `FAISS_ROOT` is
+inferred from the `env_*.sh` script's own location (no hardcoded drive-letter
+guess) -- override it explicitly if you're sourcing a copy of the file from
+somewhere other than its normal spot in the checkout. This WSL layer has not
+been tested against real Windows/WSL hardware as part of this rework (only
+read through for correctness) -- verify it end-to-end before relying on it.
 
 ---
 

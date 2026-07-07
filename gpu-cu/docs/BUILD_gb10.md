@@ -27,14 +27,18 @@ from the [zbrad/cuvs](https://github.com/zbrad/cuvs) fork (GPU-codename naming;
 see that repo's `gpu-build/docs/WHEEL_NAMING.md`). Build it first:
 
 ```bash
-git clone https://github.com/zbrad/cuvs /home/zbrad/gh/cuvs
-cd /home/zbrad/gh/cuvs && ./build_gb10.sh
+git clone https://github.com/zbrad/cuvs ../cuvs   # a sibling of this faiss checkout
+cd ../cuvs && ./build_gb10.sh
 # produces cpp/build/libcuvs-gb10-cu132.so
 ```
 
 The build scripts look for it at `${CUVS_DIR}/libcuvs-gb10-${FAISS_CUDA_TAG}.so`,
 where `CUVS_DIR` defaults to `${CUVS_REPO}/cpp/build` and `CUVS_REPO` defaults to
-`/home/zbrad/gh/cuvs`. Override either if your checkout differs:
+`${GITHUB_ROOT}/cuvs`. `GITHUB_ROOT` itself defaults to the parent directory of
+this faiss checkout (inferred from this script's own path, not hardcoded), so
+things work automatically as long as `cuvs` is cloned as a sibling of `faiss`
+under the same parent directory. Override any of the three if your layout
+differs:
 
 ```bash
 export CUVS_REPO=/path/to/cuvs          # or

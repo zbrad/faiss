@@ -34,11 +34,28 @@ fi
 export FAISS_CUDA_VER="${FAISS_CUDA_VER:-13.2}"
 export FAISS_CUDA_TAG="${FAISS_CUDA_TAG:-cu${FAISS_CUDA_VER//./}}"
 
+# List installed toolkits under /usr/local/cuda-<ver> (glob, sorted). Used to
+# give actionable guidance instead of a bare "wrong version" warning.
+faiss_installed_cuda_toolkits() {
+    local d
+    for d in /usr/local/cuda-[0-9]*; do
+        [ -d "$d" ] && basename "$d" | sed 's/^cuda-//'
+    done | sort -V
+}
+
 # --- Resolve CUDA_HOME to the matching toolkit when not explicitly set ---
 if [ -z "${CUDA_HOME:-}" ]; then
     if [ -d "/usr/local/cuda-${FAISS_CUDA_VER}" ]; then
         export CUDA_HOME="/usr/local/cuda-${FAISS_CUDA_VER}"
     else
+        echo "[cuda_env] WARNING: /usr/local/cuda-${FAISS_CUDA_VER} not found; falling back to /usr/local/cuda (whatever version that symlinks to)." >&2
+        _faiss_installed="$(faiss_installed_cuda_toolkits | tr '\n' ' ')"
+        if [ -n "$_faiss_installed" ]; then
+            echo "[cuda_env]          Installed toolkits: ${_faiss_installed}. Set FAISS_CUDA_VER to one of these, or CUDA_HOME to an explicit path." >&2
+        else
+            echo "[cuda_env]          No /usr/local/cuda-<ver> toolkits found at all." >&2
+        fi
+        unset _faiss_installed
         export CUDA_HOME="/usr/local/cuda"
     fi
 fi
@@ -50,6 +67,9 @@ if command -v nvcc >/dev/null 2>&1; then
     if [ -n "$_faiss_nvcc_ver" ] && [ "$_faiss_nvcc_ver" != "$FAISS_CUDA_VER" ]; then
         echo "[cuda_env] WARNING: nvcc reports CUDA $_faiss_nvcc_ver but FAISS_CUDA_VER=$FAISS_CUDA_VER" >&2
         echo "[cuda_env]          (CUDA_HOME=$CUDA_HOME). Set CUDA_HOME or FAISS_CUDA_VER to match." >&2
+        _faiss_installed="$(faiss_installed_cuda_toolkits | tr '\n' ' ')"
+        [ -n "$_faiss_installed" ] && echo "[cuda_env]          Installed toolkits: ${_faiss_installed}" >&2
+        unset _faiss_installed
     fi
     unset _faiss_nvcc_ver
 fi

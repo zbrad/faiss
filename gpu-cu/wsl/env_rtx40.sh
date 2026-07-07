@@ -3,9 +3,16 @@
 # Source this file before running any build step:
 #   source gpu-cu/wsl/env_rtx40.sh
 
+# Repo root: inferred from this script's own location (wsl/ -> gpu-cu/ ->
+# repo root), not a hardcoded drive-letter guess. Override FAISS_ROOT
+# explicitly if you're sourcing a copy of this file from elsewhere.
+_wsl_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export FAISS_ROOT="${FAISS_ROOT:-$(cd "$_wsl_script_dir/../.." && pwd)}"
+unset _wsl_script_dir
+
 # CUDA version + CUDA_HOME resolution (single source of truth).
 # Override the version per-invocation, e.g.:  FAISS_CUDA_VER=13.3 source gpu-cu/wsl/env_rtx40.sh
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../scripts" && pwd)/cuda_env.sh"
+source "$FAISS_ROOT/gpu-cu/scripts/cuda_env.sh"
 
 # CUDA_HOME is resolved by cuda_env.sh (versioned toolkit if present); keep it.
 export MKL_ROOT=/opt/intel/oneapi/mkl/latest
@@ -26,9 +33,6 @@ export CUDA_ARCHS="89"
 # name; the codename alone already implies exactly one GPU arch, so there's
 # no separate -sm<arch> suffix (matches gpu-cu/scripts/package_wheel_rtx40.sh).
 export FAISS_VARIANT="${FAISS_VARIANT:-rtx40-${FAISS_CUDA_TAG}}"
-
-# Repo root (WSL mount path) — adjust if your drive letter differs
-export FAISS_ROOT="${FAISS_ROOT:-/mnt/f/GitHub/faiss}"
 
 echo "[env] CUDA_VER     = $FAISS_CUDA_VER (tag $FAISS_CUDA_TAG)"
 echo "[env] CUDA_HOME    = $CUDA_HOME"

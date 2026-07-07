@@ -36,7 +36,8 @@ check_prerequisites() {
     fi
     log_info "CUDA: $(nvcc --version | grep release | awk '{print $6}' | tr -d ',')"
 
-    CUVS_REPO="${CUVS_REPO:-/home/zbrad/gh/cuvs}"
+    GITHUB_ROOT="${GITHUB_ROOT:-$(dirname "$FAISS_ROOT")}"
+    CUVS_REPO="${CUVS_REPO:-${GITHUB_ROOT}/cuvs}"
     CUVS_DIR="${CUVS_DIR:-${CUVS_REPO}/cpp/build}"
     if [[ ! -f "${CUVS_DIR}/libcuvs-gb10-${FAISS_CUDA_TAG}.so" ]]; then
         log_error "libcuvs-gb10-${FAISS_CUDA_TAG}.so not found at ${CUVS_DIR}"
@@ -67,7 +68,7 @@ show_config() {
     echo "  Host arch   : aarch64 (sbsa-linux)"
     echo "  CUDA_HOME   : ${CUDA_HOME:-/usr/local/cuda}"
     echo "  CUDA_ARCHS  : 121-real"
-    echo "  CUVS_DIR    : ${CUVS_DIR:-${CUVS_REPO:-/home/zbrad/gh/cuvs}/cpp/build}"
+    echo "  CUVS_DIR    : ${CUVS_DIR:-${CUVS_REPO:-${GITHUB_ROOT:-$(dirname "$FAISS_ROOT")}/cuvs}/cpp/build}"
     echo "  Python      : $(${PYTHON:-python3} --version 2>&1)"
     echo "  C++ libs out: _libfaiss_stage_gb10/"
     echo "  Wheel out   : $BUILD_OUTPUT_DIR/"

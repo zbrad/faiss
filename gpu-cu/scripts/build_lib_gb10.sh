@@ -36,7 +36,8 @@ mkdir -p "$BUILD_DIR"
 exec > >(tee "$BUILD_DIR/build.log") 2>&1
 
 # cuVS gb10: built from github.com/zbrad/cuvs
-CUVS_REPO="${CUVS_REPO:-/home/zbrad/gh/cuvs}"
+GITHUB_ROOT="${GITHUB_ROOT:-$(dirname "$FAISS_ROOT")}"
+CUVS_REPO="${CUVS_REPO:-${GITHUB_ROOT}/cuvs}"
 CUVS_DIR="${CUVS_DIR:-${CUVS_REPO}/cpp/build}"
 
 # WSL: ensure CUDA is on PATH
