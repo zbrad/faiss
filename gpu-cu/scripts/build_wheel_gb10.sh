@@ -67,7 +67,7 @@ show_config() {
     echo "  Target GPU  : GB10 Grace Blackwell (SM 121)"
     echo "  Host arch   : aarch64 (sbsa-linux)"
     echo "  CUDA_HOME   : ${CUDA_HOME:-/usr/local/cuda}"
-    echo "  CUDA_ARCHS  : 121-real"
+    echo "  CUDA_ARCHS  : 121a-real"
     echo "  CUVS_DIR    : ${CUVS_DIR:-${CUVS_REPO:-${GITHUB_ROOT:-$(dirname "$FAISS_ROOT")}/cuvs}/cpp/build}"
     echo "  Python      : $(${PYTHON:-python3} --version 2>&1)"
     echo "  C++ libs out: _libfaiss_stage_gb10/"

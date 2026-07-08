@@ -23,7 +23,9 @@ source "$SCRIPT_DIR/cuda_env.sh"
 
 # Environment setup
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
-CUDA_ARCHS="120"
+# "a" suffix targets the Blackwell family-specific SASS variant (mirrors
+# zbrad/cuvs's build_rtx50.sh).
+CUDA_ARCHS="120a"
 PYTHON="${PYTHON:-python3}"
 # Resolve to an absolute path: CMake's find_package(Python) can otherwise
 # resolve a bare "python3" differently than the shell just did (e.g. picking
@@ -142,6 +144,7 @@ cmake -B "$BUILD_DIR" \
     -DFAISS_OUTPUT_NAME=faiss-rtx50-${FAISS_CUDA_TAG} \
     -DFAISS_C_OUTPUT_NAME=faiss_c-rtx50-${FAISS_CUDA_TAG} \
     -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
+    -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
     .
 
 # Build

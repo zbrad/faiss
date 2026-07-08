@@ -26,7 +26,7 @@ BUILD_OUTPUT_DIR="build_output_gb10"
 # Codename naming (matches libfaiss-gb10-*.so / libcuvs-gb10-*.so):
 # faiss-gb10-${FAISS_CUDA_TAG}. The wheel's manylinux_*_aarch64 platform tag
 # still selects aarch64 at install time.
-export CUDA_ARCHS="121"
+export CUDA_ARCHS="121a-real"
 FAISS_VARIANT="gb10-${FAISS_CUDA_TAG}"
 PY_VER=$(${PYTHON} -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
 BUILD_DIR="_build_python_gb10_${PY_VER}"
@@ -56,7 +56,7 @@ mkdir -p "$BUILD_OUTPUT_DIR"
 # Build wheel
 echo "[1/3] Building wheel with setuptools..."
 cd "$BUILD_DIR"
-FAISS_VARIANT="$FAISS_VARIANT" CUDA_ARCHS="121" $PYTHON setup.py bdist_wheel
+FAISS_VARIANT="$FAISS_VARIANT" CUDA_ARCHS="121a-real" $PYTHON setup.py bdist_wheel
 
 # Copy wheel to output directory
 echo "[2/3] Copying wheel to output..."

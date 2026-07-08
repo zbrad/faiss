@@ -26,7 +26,7 @@ BUILD_OUTPUT_DIR="build_output_rtx50"
 # Codename naming (matches libfaiss-rtx50-*.so / libcuvs-rtx50-*.so):
 # faiss-rtx50-${FAISS_CUDA_TAG}. The wheel's manylinux_*_x86_64 platform tag
 # still selects x86_64 at install time.
-export CUDA_ARCHS="120"
+export CUDA_ARCHS="120a"
 FAISS_VARIANT="${FAISS_VARIANT:-rtx50-${FAISS_CUDA_TAG}}"
 PY_VER=$(${PYTHON} -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
 BUILD_DIR="_build_python_rtx50_${PY_VER}"

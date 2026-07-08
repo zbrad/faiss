@@ -19,7 +19,9 @@ source "$SCRIPT_DIR/cuda_env.sh"
 
 # Environment setup
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
-CUDA_ARCHS="121-real"
+# "a" suffix targets the Blackwell family-specific SASS variant (mirrors
+# zbrad/cuvs's build_gb10.sh).
+CUDA_ARCHS="121a-real"
 PYTHON="${PYTHON:-python3}"
 # Resolve to an absolute path: CMake's find_package(Python) can otherwise
 # resolve a bare "python3" differently than the shell just did (e.g. picking
@@ -107,6 +109,7 @@ cmake -B "$BUILD_DIR" \
     -DFAISS_CUVS_GB10_LIBRARY="${CUVS_DIR}/libcuvs-gb10-${FAISS_CUDA_TAG}.so" \
     -Dcuvs_DIR="$CUVS_DIR" \
     -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" \
+    -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
     .
 
 # Build

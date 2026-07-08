@@ -26,7 +26,7 @@ export MKL_LIB="$MKL_ROOT/lib/libmkl_rt.so"
 # Single-arch: RTX 50 / Blackwell (SM 120) only -- matches gpu-cu/scripts/
 # build_lib_rtx50.sh and zbrad/cuvs's own build_rtx50.sh. Not overridable via
 # CUDA_ARCHS anymore; use env_rtx40.sh for Ada Lovelace.
-export CUDA_ARCHS="120"
+export CUDA_ARCHS="120a"
 
 # Wheel package name: faiss-{FAISS_VARIANT}, e.g. faiss-rtx50-cu132. CPU arch
 # is carried by the wheel's manylinux platform tag (x86_64 here), not the

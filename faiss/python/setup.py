@@ -129,18 +129,23 @@ _package_name = f"faiss-{_variant}" if _variant else "faiss"
 # ever set for genuine GPU builds (gpu-cu132, or codename variants like
 # rtx40-cu132/rtx50-cu132/gb10-cu132 -- none of which contain the literal
 # substring "gpu"), so its presence alone is the right gate.
+#
+# NOTE: everything derived from CUDA_ARCHS below (_desc_* names) feeds ONLY
+# the wheel's long_description text, not any compiler flag -- the actual
+# nvcc/CMAKE_CUDA_ARCHITECTURES build already happened in build_pkg_*.sh
+# before this script runs. Names are prefixed _desc_ to make that clear.
 _cuda_archs = os.environ.get("CUDA_ARCHS", "").strip()
 import re as _re
 if _variant and _cuda_archs:
-    # Normalise "75;80;86;89;90;100;120" or "121-real" → ["sm_75", "sm_80", ...]
-    _arch_codes = sorted({
+    # Normalise "75;80;86;89;90;100;120" or "121a-real" → ["sm_75", "sm_80", ...]
+    _desc_arch_codes = sorted({
         a.strip().replace("-real", "").replace("-virtual", "")
         for a in _cuda_archs.replace(",", ";").split(";") if a.strip()
     })
-    _arch_names = [f"sm_{c}" for c in _arch_codes]
-    _arch_list = ", ".join(_arch_names)
+    _desc_arch_names = [f"sm_{c}" for c in _desc_arch_codes]
+    _desc_arch_list = ", ".join(_desc_arch_names)
     # A build targeting exactly one arch is GPU-generation-specific.
-    _single_arch = _arch_names[0] if len(_arch_names) == 1 else ""
+    _desc_single_arch = _desc_arch_names[0] if len(_desc_arch_names) == 1 else ""
     # Extract CUDA version suffix, e.g. "gpu-cu132" → "13.2"
     _cu_match = _re.search(r"cu(\d+)", _variant)
     if _cu_match:
@@ -159,11 +164,11 @@ if _variant and _cuda_archs:
             f"Requires libcuvs-gb10-cu{_cu_str}.so from github.com/zbrad/cuvs.\n"
         )
     else:
-        _gpu_details = f"\nThis wheel was built with CUDA {_cuda_ver} (x86_64) and targets: {_arch_list}.\n"
-    if _single_arch:
+        _gpu_details = f"\nThis wheel was built with CUDA {_cuda_ver} (x86_64) and targets: {_desc_arch_list}.\n"
+    if _desc_single_arch:
         _gpu_details += (
-            f"Single-architecture build: runs only on {_single_arch} GPUs "
-            f"(package tagged -{_single_arch.replace('_', '')}).\n"
+            f"Single-architecture build: runs only on {_desc_single_arch} GPUs "
+            f"(package tagged -{_desc_single_arch.replace('_', '')}).\n"
         )
 else:
     _gpu_details = ""

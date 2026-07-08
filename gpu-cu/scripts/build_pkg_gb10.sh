@@ -15,7 +15,7 @@ cd "$FAISS_ROOT"
 
 # Environment setup
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
-CUDA_ARCHS="121-real"
+CUDA_ARCHS="121a-real"
 PYTHON="${PYTHON:-python3}"
 # Resolve to an absolute path: CMake's find_package(Python) can otherwise
 # resolve a bare "python3" differently than the shell just did (e.g. picking

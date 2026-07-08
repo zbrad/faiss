@@ -23,10 +23,10 @@ Source: [NVIDIA CUDA GPUs](https://developer.nvidia.com/cuda-gpus) (verified Apr
 | Build Target | `CUDA_ARCHS` | SM Codes Compiled |
 |---|---|---|
 | Standard (x86_64) | `75;80;86;89;90;120` | sm_75 sm_80 sm_86 sm_89 sm_90 sm_120 |
-| DGX Spark (aarch64) | `121-real` | sm_121 only |
+| DGX Spark (aarch64) | `121a-real` | sm_121a only (Blackwell family-specific) |
 
 ## Notes
 
 - **sm_75 (Turing)**: Supported in CUDA 13.2 for PTX compilation only; offline library support removed in CUDA 13.0.
-- **sm_121 / DGX Spark**: The GB10 chip pairs a Grace CPU (aarch64/sbsa) with a Blackwell GPU die. Build with `build_wheel_gb10.sh`; requires `libcuvs-gb10-cu132.so` (GPU-codename naming, see [zbrad/cuvs gpu-build/docs/WHEEL_NAMING.md](https://github.com/zbrad/cuvs/blob/gb10/gpu-build/docs/WHEEL_NAMING.md)) from [zbrad/cuvs](https://github.com/zbrad/cuvs).
+- **sm_121 / DGX Spark**: The GB10 chip pairs a Grace CPU (aarch64/sbsa) with a Blackwell GPU die. Build with `build_wheel_gb10.sh`; requires `libcuvs-gb10-cu132.so` (GPU-codename naming, see [zbrad/cuvs gpu-build/docs/WHEEL_NAMING.md](https://github.com/zbrad/cuvs/blob/native-builds/gpu-build/docs/WHEEL_NAMING.md)) from [zbrad/cuvs](https://github.com/zbrad/cuvs).
 - **sm_100**: Mentioned in CUDA 13.2 cuBLAS release notes alongside sm_103 but not attributed to any shipping product on the NVIDIA CUDA GPUs product page. Not included in FAISS build defaults.
