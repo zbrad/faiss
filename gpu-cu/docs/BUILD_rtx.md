@@ -6,8 +6,10 @@ single-arch builds by generation:
 - **RTX 40** (Ada Lovelace, SM 89) — RTX 4080, RTX 4090 — `build_wheel_rtx40.sh`
 - **RTX 50** (Blackwell, SM 120) — RTX 5080, RTX 5090 — `build_wheel_rtx50.sh`
 
-This mirrors [zbrad/cuvs](https://github.com/zbrad/cuvs)'s own `build_rtx40.sh`
-/ `build_rtx50.sh` split, which dropped datacenter/professional architectures
+This mirrors [zbrad/cuvs](https://github.com/zbrad/cuvs)'s own `tuned/build.sh
+rtx40` / `tuned/build.sh rtx50` split (consolidated from separate
+`build_rtx40.sh`/`build_rtx50.sh` scripts, still available there as
+deprecation shims), which dropped datacenter/professional architectures
 (Hopper, Blackwell DC, GB200, Ada professional parts) from its build matrix for
 the same reason: only build what's actually owned/verified. See
 [BUILD_gb10.md](BUILD_gb10.md) for the aarch64 / DGX Spark build.
@@ -96,9 +98,10 @@ export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 ```
 
-`CUDA_ARCHS` is fixed per script now (`89` in `build_lib_rtx40.sh`, `120` in
-`build_lib_rtx50.sh`) rather than an overridable multi-arch list — pick the
-script matching your GPU generation instead of setting `CUDA_ARCHS`.
+`CUDA_ARCHS` is fixed per script now (`89` in `build_lib_rtx40.sh`, `120a` in
+`build_lib_rtx50.sh` — the "a" suffix targets Blackwell's family-specific SASS
+variant) rather than an overridable multi-arch list — pick the script
+matching your GPU generation instead of setting `CUDA_ARCHS`.
 
 ### 1.1 Set Intel MKL Paths (Required)
 

@@ -28,9 +28,12 @@ see that repo's `gpu-build/docs/WHEEL_NAMING.md`). Build it first:
 
 ```bash
 git clone https://github.com/zbrad/cuvs ../cuvs   # a sibling of this faiss checkout
-cd ../cuvs && ./build_gb10.sh
+cd ../cuvs && bash tuned/build.sh gb10
 # produces cpp/build/libcuvs-gb10-cu132.so
 ```
+
+(`./build_gb10.sh` still works there too -- it's a deprecation shim for the
+consolidated `tuned/build.sh gb10`.)
 
 The build scripts look for it at `${CUVS_DIR}/libcuvs-gb10-${FAISS_CUDA_TAG}.so`,
 where `CUVS_DIR` defaults to `${CUVS_REPO}/cpp/build` and `CUVS_REPO` defaults to
@@ -104,7 +107,7 @@ for the full version/naming scheme.
 ## Troubleshooting
 
 **"libcuvs-gb10-*.so not found"**
-- Build it: `cd $CUVS_REPO && ./build_gb10.sh`, or set `CUVS_DIR` to its location.
+- Build it: `cd $CUVS_REPO && bash tuned/build.sh gb10`, or set `CUVS_DIR` to its location.
 
 **"OpenBLAS not found"**
 - Install: `sudo apt install libopenblas-dev`

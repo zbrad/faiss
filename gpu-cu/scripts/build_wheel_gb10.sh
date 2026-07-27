@@ -41,7 +41,7 @@ check_prerequisites() {
     CUVS_DIR="${CUVS_DIR:-${CUVS_REPO}/cpp/build}"
     if [[ ! -f "${CUVS_DIR}/libcuvs-gb10-${FAISS_CUDA_TAG}.so" ]]; then
         log_error "libcuvs-gb10-${FAISS_CUDA_TAG}.so not found at ${CUVS_DIR}"
-        log_error "Build it first: cd ${CUVS_REPO} && ./build_gb10.sh"
+        log_error "Build it first: cd ${CUVS_REPO} && bash tuned/build.sh gb10"
         exit 1
     fi
     log_info "cuVS-gb10: ${CUVS_DIR}/libcuvs-gb10-${FAISS_CUDA_TAG}.so"

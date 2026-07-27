@@ -8,8 +8,9 @@
 # Produces libfaiss-rtx50-${FAISS_CUDA_TAG}.so / libfaiss_c-rtx50-${FAISS_CUDA_TAG}.so
 #
 # Single-arch build targeting owned/verified consumer hardware (RTX 5080/5090,
-# SM 120) only -- mirrors zbrad/cuvs's build_rtx50.sh, which dropped datacenter
-# Ada/Hopper/Blackwell-DC archs from its own build matrix for the same reason.
+# SM 120) only -- mirrors zbrad/cuvs's tuned/build.sh rtx50, which dropped
+# datacenter Ada/Hopper/Blackwell-DC archs from its own build matrix for the
+# same reason.
 # See build_lib_rtx40.sh for the Ada Lovelace (RTX 4080/4090) build.
 
 set -e
@@ -24,7 +25,7 @@ source "$SCRIPT_DIR/cuda_env.sh"
 # Environment setup
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
 # "a" suffix targets the Blackwell family-specific SASS variant (mirrors
-# zbrad/cuvs's build_rtx50.sh).
+# zbrad/cuvs's tuned/build.sh rtx50).
 CUDA_ARCHS="120a"
 PYTHON="${PYTHON:-python3}"
 # Resolve to an absolute path: CMake's find_package(Python) can otherwise

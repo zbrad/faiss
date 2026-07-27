@@ -20,7 +20,7 @@ source "$SCRIPT_DIR/cuda_env.sh"
 # Environment setup
 CUDA_HOME="${CUDA_HOME:-/usr/local/cuda}"
 # "a" suffix targets the Blackwell family-specific SASS variant (mirrors
-# zbrad/cuvs's build_gb10.sh).
+# zbrad/cuvs's tuned/build.sh gb10).
 CUDA_ARCHS="121a-real"
 PYTHON="${PYTHON:-python3}"
 # Resolve to an absolute path: CMake's find_package(Python) can otherwise
@@ -68,7 +68,7 @@ echo "CUDA compiler: $(nvcc --version | grep -E 'release|version')"
 echo "[1b] Verifying libcuvs-gb10..."
 if [[ ! -f "${CUVS_DIR}/libcuvs-gb10-${FAISS_CUDA_TAG}.so" ]]; then
     echo "ERROR: libcuvs-gb10-${FAISS_CUDA_TAG}.so not found at ${CUVS_DIR}"
-    echo "  Build it first: cd ${CUVS_REPO} && ./build_gb10.sh"
+    echo "  Build it first: cd ${CUVS_REPO} && bash tuned/build.sh gb10"
     exit 1
 fi
 echo "cuVS-gb10 library: ${CUVS_DIR}/libcuvs-gb10-${FAISS_CUDA_TAG}.so"

@@ -71,7 +71,7 @@ check_prerequisites() {
 show_config() {
     log_info "Build Configuration:"
     echo "  CUDA_HOME: ${CUDA_HOME:-/usr/local/cuda}"
-    echo "  CUDA_ARCHS: 120 (Blackwell, RTX 5080/5090)"
+    echo "  CUDA_ARCHS: 120a (Blackwell, RTX 5080/5090)"
     echo "  Python: $(python --version 2>&1 || python3 --version 2>&1)"
     echo "  Build output: $BUILD_OUTPUT_DIR"
     echo "  Wheel name: faiss-rtx50-${FAISS_CUDA_TAG}"

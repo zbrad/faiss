@@ -8,8 +8,9 @@
 # Produces libfaiss-rtx40-${FAISS_CUDA_TAG}.so / libfaiss_c-rtx40-${FAISS_CUDA_TAG}.so
 #
 # Single-arch build targeting owned/verified consumer hardware (RTX 4080/4090,
-# SM 89) only -- mirrors zbrad/cuvs's build_rtx40.sh, which dropped datacenter
-# Ada/Hopper/Blackwell-DC archs from its own build matrix for the same reason.
+# SM 89) only -- mirrors zbrad/cuvs's tuned/build.sh rtx40, which dropped
+# datacenter Ada/Hopper/Blackwell-DC archs from its own build matrix for the
+# same reason.
 # See build_lib_rtx50.sh for the Blackwell (RTX 5080/5090) build.
 
 set -e

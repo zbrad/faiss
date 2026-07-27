@@ -24,8 +24,8 @@ export MKL_INCLUDE_DIR="$MKL_ROOT/include"
 export MKL_LIB="$MKL_ROOT/lib/libmkl_rt.so"
 
 # Single-arch: RTX 40 / Ada Lovelace (SM 89) only -- matches gpu-cu/scripts/
-# build_lib_rtx40.sh and zbrad/cuvs's own build_rtx40.sh. Not overridable via
-# CUDA_ARCHS anymore; use env_rtx50.sh for Blackwell.
+# build_lib_rtx40.sh and zbrad/cuvs's own tuned/build.sh rtx40. Not
+# overridable via CUDA_ARCHS anymore; use env_rtx50.sh for Blackwell.
 export CUDA_ARCHS="89"
 
 # Wheel package name: faiss-{FAISS_VARIANT}, e.g. faiss-rtx40-cu132. CPU arch

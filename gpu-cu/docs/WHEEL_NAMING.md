@@ -149,7 +149,7 @@ WSL 2:
 
 | Script | Purpose |
 |--------|---------|
-| `env_rtx40.sh` / `env_rtx50.sh` | Sets `CUDA_ARCHS` (89/120, fixed), `FAISS_VARIANT` (`rtx40-`/`rtx50-${FAISS_CUDA_TAG}`), MKL paths |
+| `env_rtx40.sh` / `env_rtx50.sh` | Sets `CUDA_ARCHS` (89/120a, fixed), `FAISS_VARIANT` (`rtx40-`/`rtx50-${FAISS_CUDA_TAG}`), MKL paths |
 | `build_rtx40.sh` / `build_rtx50.sh` | Sources the matching `env_*.sh`, calls `gpu-cu/scripts/build_wheel_rtx40.sh` / `build_wheel_rtx50.sh` directly |
 | `verify_rtx40.sh` / `verify_rtx50.sh` | Installs + smoke-tests (CPU and GPU) the built wheel from `build_output_rtx40/` / `build_output_rtx50/` |
 | `check_wheel.py [dir]` | Inspects a wheel's bundled `.so` files; defaults to `build_output_rtx40` |
