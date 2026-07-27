@@ -51,8 +51,9 @@ export CUVS_DIR=/path/to/cuvs/cpp/build
 ## Quick start
 
 ```bash
-# Full build: C++ libs → SWIG bindings → wheel
-bash gpu-cu/scripts/build_wheel_gb10.sh
+# Full build: C++ lib -> SWIG bindings -> wheel
+bash tuned/build.sh gb10
+bash tuned/wheel.sh gb10
 ```
 
 Output wheel lands in `build_output_gb10/` (and `build_output_gb10/repaired/`
@@ -63,29 +64,26 @@ pip install build_output_gb10/repaired/faiss_gb10_cu132-*.whl
 python -c "import faiss; print(faiss.__version__, faiss.get_num_gpus())"
 ```
 
-## Build steps (manual)
+## Build steps
 
-```bash
-bash gpu-cu/scripts/build_lib_gb10.sh      # libfaiss-gb10-cu132.so + libfaiss_c-gb10-cu132.so
-bash gpu-cu/scripts/build_pkg_gb10.sh      # SWIG Python bindings (generic opt-level, no AVX)
-bash gpu-cu/scripts/package_wheel_gb10.sh  # wheel + auditwheel repair
-```
+`tuned/build.sh gb10` and `tuned/wheel.sh gb10` consolidate what used to be
+four separate scripts (`build_lib_gb10.sh`, `build_pkg_gb10.sh`,
+`package_wheel_gb10.sh`, and the `build_wheel_gb10.sh` orchestrator that
+called all three):
 
-| Script | Purpose |
-|--------|---------|
-| `build_lib_gb10.sh` | C++ library — SM 121, OpenBLAS, links `libcuvs-gb10-cu132.so` |
-| `build_pkg_gb10.sh` | SWIG bindings (generic opt-level; ARM has no AVX) |
-| `package_wheel_gb10.sh` | Wheel packaging + `auditwheel repair` (manylinux aarch64) |
-| `build_wheel_gb10.sh` | Unified orchestrator (`all` / `lib` / `pkg` / `wheel` / `clean` / `check`) |
+| Step | What it does |
+|------|---------------|
+| `tuned/build.sh gb10` | C++ library — SM 121, OpenBLAS, links `libcuvs-gb10-cu132.so`, then `gpu_tuned_verify_arch` confirms the compiled `.so` is really single-arch SM 121 |
+| `tuned/wheel.sh gb10` | SWIG bindings (generic opt-level; ARM has no AVX) + wheel packaging + `auditwheel repair` |
 
 ## CUDA version selection
 
 The CUDA version is a single input, shared with the RTX pipelines via
-`gpu-cu/scripts/cuda_env.sh`. Specify it per build (the tag is derived):
+`tuned/env.sh`. Specify it per build (the tag is derived):
 
 ```bash
-FAISS_CUDA_VER=13.3 bash gpu-cu/scripts/build_wheel_gb10.sh   # → faiss-gb10-cu133
-FAISS_CUDA_TAG=cu133 bash gpu-cu/scripts/build_wheel_gb10.sh
+FAISS_CUDA_VER=13.3 bash tuned/build.sh gb10   # -> faiss-gb10-cu133
+FAISS_CUDA_TAG=cu133 bash tuned/build.sh gb10
 ```
 
 On a host with multiple toolkits, `CUDA_HOME` auto-resolves to
@@ -121,12 +119,10 @@ for the full version/naming scheme.
 - `sudo apt install python3-dev`
 
 **Build runs out of memory**
-- Reduce parallelism: `FAISS_BUILD_JOBS=4 bash gpu-cu/scripts/build_wheel_gb10.sh`
+- Reduce parallelism: `FAISS_BUILD_JOBS=4 bash tuned/build.sh gb10`
 
 ## Cleaning up
 
 ```bash
-bash gpu-cu/scripts/build_wheel_gb10.sh clean   # remove GB10 build dirs
-# or, all arches:
-bash gpu-cu/scripts/clean_build.sh
+bash tuned/clean.sh   # removes build dirs for all variants
 ```

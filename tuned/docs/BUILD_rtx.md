@@ -3,8 +3,8 @@
 This guide builds a FAISS-GPU wheel for consumer x86_64 GPUs, as two separate
 single-arch builds by generation:
 
-- **RTX 40** (Ada Lovelace, SM 89) — RTX 4080, RTX 4090 — `build_wheel_rtx40.sh`
-- **RTX 50** (Blackwell, SM 120) — RTX 5080, RTX 5090 — `build_wheel_rtx50.sh`
+- **RTX 40** (Ada Lovelace, SM 89) — RTX 4080, RTX 4090 — `tuned/build.sh rtx40` + `tuned/wheel.sh rtx40`
+- **RTX 50** (Blackwell, SM 120) — RTX 5080, RTX 5090 — `tuned/build.sh rtx50` + `tuned/wheel.sh rtx50`
 
 This mirrors [zbrad/cuvs](https://github.com/zbrad/cuvs)'s own `tuned/build.sh
 rtx40` / `tuned/build.sh rtx50` split (consolidated from separate
@@ -31,19 +31,19 @@ Then build and verify (from PowerShell or inside WSL) — pick the pair
 matching your GPU generation:
 
 ```powershell
-wsl -e bash gpu-cu/wsl/build_rtx40.sh             # RTX 4080/4090
-wsl -e bash gpu-cu/wsl/verify_rtx40.sh --install  # install wheel + CPU/GPU sanity check
+wsl -e bash tuned/wsl/build.sh rtx40             # RTX 4080/4090
+wsl -e bash tuned/wsl/verify.sh rtx40 --install  # install wheel + CPU/GPU sanity check
 
-wsl -e bash gpu-cu/wsl/build_rtx50.sh             # RTX 5080/5090
-wsl -e bash gpu-cu/wsl/verify_rtx50.sh --install
+wsl -e bash tuned/wsl/build.sh rtx50             # RTX 5080/5090
+wsl -e bash tuned/wsl/verify.sh rtx50 --install
 ```
 
-`gpu-cu/wsl/env_rtx40.sh` / `env_rtx50.sh` set the WSL build environment
-(sourced automatically by the matching `build_*.sh`). Override the CUDA
+`tuned/wsl/env.sh <variant>` sets the WSL build environment (sourced
+automatically by `tuned/wsl/build.sh`/`verify.sh`). Override the CUDA
 version per invocation:
 
 ```bash
-FAISS_CUDA_VER=13.3 source gpu-cu/wsl/env_rtx40.sh
+FAISS_CUDA_VER=13.3 source tuned/wsl/env.sh rtx40
 ```
 
 The rest of this guide covers the general (non-WSL) build and options.
@@ -98,14 +98,14 @@ export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 ```
 
-`CUDA_ARCHS` is fixed per script now (`89` in `build_lib_rtx40.sh`, `120a` in
-`build_lib_rtx50.sh` — the "a" suffix targets Blackwell's family-specific SASS
-variant) rather than an overridable multi-arch list — pick the script
+`CUDA_ARCHS` is fixed per `tuned/devices/<variant>.conf` now (`89` for rtx40,
+`120a` for rtx50 — the "a" suffix targets Blackwell's family-specific SASS
+variant) rather than an overridable multi-arch list — pick the variant
 matching your GPU generation instead of setting `CUDA_ARCHS`.
 
 ### 1.1 Set Intel MKL Paths (Required)
 
-`gpu-cu/scripts/build_lib_rtx40.sh` / `build_lib_rtx50.sh` require Intel MKL (`mkl_rt`) and may need explicit paths when auto-detection does not match your shell environment.
+`tuned/build.sh rtx40` / `tuned/build.sh rtx50` require Intel MKL (`mkl_rt`) and may need explicit paths when auto-detection does not match your shell environment.
 
 **WSL/Linux bash accessing Windows oneAPI install:**
 ```bash
@@ -131,9 +131,9 @@ where /r "C:\Program Files (x86)\Intel\oneAPI\mkl" mkl_rt*
 Use the versioned MKL directory (for example `.../mkl/2025.3`) if `latest` symlink/path resolution behaves differently between shells.
 
 Supported GPU architectures (CUDA 13.2):
-- `89`: Ada Lovelace (RTX 4090, RTX 4080) — `build_lib_rtx40.sh`
-- `120`: Blackwell (RTX 5090, RTX 5080) — `build_lib_rtx50.sh`
-- `121`: Blackwell (GB10 Grace Blackwell / DGX Spark, aarch64) — see [BUILD_gb10.md](BUILD_gb10.md)
+- `89`: Ada Lovelace (RTX 4090, RTX 4080) — `tuned/build.sh rtx40`
+- `120a`: Blackwell (RTX 5090, RTX 5080) — `tuned/build.sh rtx50`
+- `121a`: Blackwell (GB10 Grace Blackwell / DGX Spark, aarch64) — see [BUILD_gb10.md](BUILD_gb10.md)
 
 Datacenter/professional architectures (Turing, Ampere, Hopper, Blackwell DC,
 GB200, Ada professional parts like L40/L40S/RTX 6000 Ada) are intentionally
@@ -141,22 +141,12 @@ GB200, Ada professional parts like L40/L40S/RTX 6000 Ada) are intentionally
 
 ### 2. Build the Wheel
 
-Use one of the provided build scripts:
-
-**Automated build (recommended):**
 ```bash
-bash gpu-cu/scripts/build_wheel_rtx40.sh   # RTX 4080/4090
-# or
-bash gpu-cu/scripts/build_wheel_rtx50.sh   # RTX 5080/5090
-```
-
-**Manual build:**
-```bash
-# Step 1: Build the C++ library
-bash gpu-cu/scripts/build_lib_rtx40.sh     # or build_lib_rtx50.sh
-
-# Step 2: Build Python bindings and wheel
-bash gpu-cu/scripts/build_pkg_rtx40.sh     # or build_pkg_rtx50.sh
+bash tuned/build.sh rtx40    # C++ library
+bash tuned/wheel.sh rtx40    # SWIG bindings + wheel packaging
+# or, for RTX 50:
+bash tuned/build.sh rtx50
+bash tuned/wheel.sh rtx50
 ```
 
 ### 3. Find the Built Wheel
@@ -204,7 +194,7 @@ python -c "import faiss; print(faiss.__version__); print(faiss.gpuGetNumDevices(
 - Or use conda environment with python-dev package
 
 **"Build runs out of memory"**
-- Reduce parallel jobs: `FAISS_BUILD_JOBS=4 bash gpu-cu/scripts/build_wheel_rtx40.sh`
+- Reduce parallel jobs: `FAISS_BUILD_JOBS=4 bash tuned/build.sh rtx40`
 
 **"swig: command not found"**
 - Install: `conda install swig=4.0` or `sudo apt install swig`
@@ -237,7 +227,7 @@ python bench_*.py
 
 ```bash
 # Remove build files but keep wheel
-bash gpu-cu/scripts/clean_build.sh
+bash tuned/clean.sh
 
 # Remove everything including wheels
 rm -rf build/ _build* _libfaiss_stage* build_output*/

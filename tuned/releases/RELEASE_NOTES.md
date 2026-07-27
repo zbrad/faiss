@@ -1,3 +1,11 @@
+> ⚠ **SUPERSEDED, kept for history only.** Dated March 26, 2026 -- predates
+> the gb10/rtx40/rtx50 codename split (2026-07-06) and the tuned/ reorg. Its
+> `gpu-cu/scripts/build_{lib,pkg,package_wheel,wheel}_{x86_64,aarch64}.sh`
+> script names describe an earlier, since-renamed/consolidated layout; see
+> [WHEEL_NAMING.md](../docs/WHEEL_NAMING.md) for the current one. Not
+> rewritten in place -- this is a point-in-time build record, not living
+> documentation.
+
 # FAISS GPU CUDA 13.2 - Release Notes
 
 **Version**: FAISS-GPU-CU132  

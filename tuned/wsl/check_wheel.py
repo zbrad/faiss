@@ -8,7 +8,7 @@ build_output_rtx50 for the other build.
 """
 import zipfile, sys, pathlib
 
-_repo_root = pathlib.Path(__file__).resolve().parents[2]  # wsl/ -> gpu-cu/ -> repo root
+_repo_root = pathlib.Path(__file__).resolve().parents[2]  # wsl/ -> tuned/ -> repo root
 whl_dir = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else str(_repo_root / "build_output_rtx40"))
 wheels = list(whl_dir.glob("*.whl"))
 if not wheels:

@@ -8,7 +8,7 @@ import sys
 import os
 from pathlib import Path
 
-# CUDA version single source of truth (mirror of gpu-cu/scripts/cuda_env.sh).
+# CUDA version single source of truth (mirror of tuned/env.sh).
 CUDA_VER = os.environ.get("FAISS_CUDA_VER", "13.2")
 
 def run_command(cmd):
@@ -167,7 +167,7 @@ def main():
         print("✗ Some checks failed. Please resolve issues before building.")
         print("\nCommon fixes:")
         print(f"  - Set CUDA_HOME=/usr/local/cuda-{CUDA_VER}")
-        print("  - Install conda: conda env create -f gpu-cu/environment.yml")
+        print("  - Install conda: conda env create -f tuned/environment.yml")
         print("  - Install system deps: sudo apt install cmake make swig")
         return 1
 

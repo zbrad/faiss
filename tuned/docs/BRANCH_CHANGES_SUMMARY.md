@@ -1,3 +1,11 @@
+> ⚠ **SUPERSEDED, kept for history only.** This doc predates the gb10/rtx40/
+> rtx50 codename rename and the tuned/ reorg -- it references a `Makefile`
+> and `.github/workflows/create-gpu-release.yml` that never existed on this
+> branch, and a `gpu-cu/` layout that no longer exists (everything moved to
+> `tuned/`, see [WHEEL_NAMING.md](WHEEL_NAMING.md) for the current layout).
+> Not rewritten in place because it's a point-in-time snapshot, not living
+> documentation -- read it as history, not instructions.
+
 # Branch Changes Summary (faiss-gpu-cu132)
 
 What this branch adds on top of `upstream/main`, and the conventions a reviewer

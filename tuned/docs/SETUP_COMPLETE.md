@@ -1,3 +1,12 @@
+> ⚠ **SUPERSEDED, kept for history only.** This doc predates the gb10/rtx40/
+> rtx50 codename rename and the tuned/ reorg -- it references
+> `build_wheel_x86_64.sh`/`build_lib_x86_64.sh`/`build_pkg_x86_64.sh`/
+> `package_wheel_x86_64.sh` and a `gpu-cu/` layout, none of which exist on
+> this branch anymore (everything moved to `tuned/`, see
+> [WHEEL_NAMING.md](WHEEL_NAMING.md) for the current layout and script
+> names). Not rewritten in place because it's a point-in-time snapshot, not
+> living documentation -- read it as history, not instructions.
+
 # Workspace Setup Complete ✓
 
 ## Summary

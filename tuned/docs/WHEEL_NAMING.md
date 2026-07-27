@@ -7,7 +7,7 @@ package names used in this branch, and the GPU-codename scheme
 (`gb10`/`rtx40`/`rtx50`) they're built on — switched from a single portable
 `faiss-gpu-cu132` name to per-codename names (`faiss-rtx40-cu132` etc.) on
 2026-07-06, mirroring [zbrad/cuvs](https://github.com/zbrad/cuvs)'s own
-GPU-codename convention (see that repo's `gpu-build/docs/WHEEL_NAMING.md`).
+GPU-codename convention (see that repo's `tuned/docs/WHEEL_NAMING.md`).
 
 ---
 
@@ -98,8 +98,8 @@ You install the codename matching your GPU explicitly, e.g.
 
 The build system exposes a `FAISS_VARIANT` environment variable that is passed
 to `setup.py` at wheel-build time. The resulting package name is
-`faiss-{FAISS_VARIANT}` (or plain `faiss` when the variable is unset). The
-`build_wheel_{gb10,rtx40,rtx50}.sh` scripts each derive
+`faiss-{FAISS_VARIANT}` (or plain `faiss` when the variable is unset).
+`tuned/wheel.sh <variant>` derives
 `FAISS_VARIANT={codename}-${FAISS_CUDA_TAG}` directly — no separate `-sm<arch>`
 suffix, since the codename alone already implies exactly one arch.
 
@@ -112,8 +112,8 @@ suffix, since the codename alone already implies exactly one arch.
 | CPU-only build | `cpu` | `faiss-cpu` | Exact match for active PyPI package |
 | Upstream canonical/untagged | *(unset)* | `faiss` | Plain upstream name |
 
-The Windows/WSL convenience layer (`gpu-cu/wsl/{env,build,verify}_rtx40.sh` /
-`_rtx50.sh`) mirrors this same codename scheme and split — see
+The Windows/WSL convenience layer (`tuned/wsl/{env,build,verify}.sh <variant>`)
+mirrors this same codename scheme and split — see
 [the WSL section below](#windows--wsl-convenience-scripts).
 
 ## Selecting / bumping the CUDA version (cu132 ↔ cu133)
@@ -122,18 +122,18 @@ The CUDA version is a single input. Specify it **per build** (no file edits) wit
 either variable — the other is derived (`13.3` ⇄ `cu133`):
 
 ```bash
-FAISS_CUDA_VER=13.3 bash gpu-cu/scripts/build_wheel_rtx40.sh   # RTX 40, CUDA 13.3 → faiss-rtx40-cu133
-FAISS_CUDA_VER=13.3 bash gpu-cu/scripts/build_wheel_gb10.sh    # GB10, CUDA 13.3
-FAISS_CUDA_TAG=cu133 bash gpu-cu/scripts/build_wheel_rtx50.sh  # tag form
+FAISS_CUDA_VER=13.3 bash tuned/build.sh rtx40   # RTX 40, CUDA 13.3 → faiss-rtx40-cu133
+FAISS_CUDA_VER=13.3 bash tuned/build.sh gb10    # GB10, CUDA 13.3
+FAISS_CUDA_TAG=cu133 bash tuned/build.sh rtx50  # tag form
 ```
 
-To change the **default**, edit the two values in `gpu-cu/scripts/cuda_env.sh`.
+To change the **default**, edit the two values in `tuned/env.sh`.
 Every wheel name (`faiss-{codename}-${FAISS_CUDA_TAG}`) and C++ library name
 (`libfaiss-{codename}-${FAISS_CUDA_TAG}.so`) derives from it, so a new CUDA
-release needs no script or path renames. The `gpu-cu/` directory and
-`environment.yml` are version-agnostic on purpose.
+release needs no script or path renames. The `tuned/` directory and
+`tuned/environment.yml` are version-agnostic on purpose.
 
-**Multi-toolkit hosts.** When `CUDA_HOME` is not set explicitly, `cuda_env.sh`
+**Multi-toolkit hosts.** When `CUDA_HOME` is not set explicitly, `tuned/env.sh`
 resolves it to `/usr/local/cuda-${FAISS_CUDA_VER}` if that directory exists
 (falling back to `/usr/local/cuda`). So on a machine with both `cuda-13.2` and
 `cuda-13.3` installed, `FAISS_CUDA_VER=13.3` builds against the 13.3 toolkit
@@ -144,25 +144,23 @@ requested, the scripts print a warning so you can correct `CUDA_HOME`.
 
 ## Windows / WSL convenience scripts
 
-`gpu-cu/wsl/` mirrors the rtx40/rtx50 split for Windows users building inside
-WSL 2:
+`tuned/wsl/` mirrors the rtx40/rtx50 split for Windows users building inside
+WSL 2 (consolidated from six separate per-variant files into three
+variant-parameterized ones):
 
 | Script | Purpose |
 |--------|---------|
-| `env_rtx40.sh` / `env_rtx50.sh` | Sets `CUDA_ARCHS` (89/120a, fixed), `FAISS_VARIANT` (`rtx40-`/`rtx50-${FAISS_CUDA_TAG}`), MKL paths |
-| `build_rtx40.sh` / `build_rtx50.sh` | Sources the matching `env_*.sh`, calls `gpu-cu/scripts/build_wheel_rtx40.sh` / `build_wheel_rtx50.sh` directly |
-| `verify_rtx40.sh` / `verify_rtx50.sh` | Installs + smoke-tests (CPU and GPU) the built wheel from `build_output_rtx40/` / `build_output_rtx50/` |
+| `env.sh <variant>` | Sources `tuned/env.sh <variant>` and re-exports `CUDA_ARCHS`, `FAISS_VARIANT`, MKL paths for WSL-side sourcing |
+| `build.sh <variant>` | Sources `env.sh`, calls `tuned/build.sh <variant>` + `tuned/wheel.sh <variant>` directly |
+| `verify.sh <variant>` | Installs + smoke-tests (CPU and GPU) the built wheel from `build_output_<variant>/` |
 | `check_wheel.py [dir]` | Inspects a wheel's bundled `.so` files; defaults to `build_output_rtx40` |
 
-`build_rtx40.sh`/`build_rtx50.sh` used to shell out to `make build`, which
-depended on a root `Makefile` target that does not exist in this checkout (a
-pre-existing gap, not introduced by this rework) -- fixed to call the real
-`build_wheel_{rtx40,rtx50}.sh` scripts directly instead. `FAISS_ROOT` is
-inferred from the `env_*.sh` script's own location (no hardcoded drive-letter
-guess) -- override it explicitly if you're sourcing a copy of the file from
-somewhere other than its normal spot in the checkout. This WSL layer has not
-been tested against real Windows/WSL hardware as part of this rework (only
-read through for correctness) -- verify it end-to-end before relying on it.
+`FAISS_ROOT` is inferred from `env.sh`'s own location (no hardcoded
+drive-letter guess) -- override it explicitly if you're sourcing a copy of
+the file from somewhere other than its normal spot in the checkout. This
+WSL layer has not been tested against real Windows/WSL hardware (only read
+through for correctness, both in the original scripts and this
+consolidation) -- verify it end-to-end before relying on it.
 
 ---
 
@@ -173,7 +171,7 @@ naming scheme is used. The base names follow CMake target names; the build scrip
 append `-{codename}-${FAISS_CUDA_TAG}`. The tables below show the current
 `FAISS_CUDA_TAG=cu132`; the `cu132` portion changes with the variable.
 
-### RTX 40 / Ada Lovelace build — `build_lib_rtx40.sh`
+### RTX 40 / Ada Lovelace build — `tuned/build.sh rtx40`
 
 | Library | Filename | Notes |
 |---------|----------|-------|
@@ -188,12 +186,12 @@ append `-{codename}-${FAISS_CUDA_TAG}`. The tables below show the current
 > `libfaiss_avx2.so` / `libfaiss_avx512.so` names; `auditwheel` bundles them into
 > the wheel regardless of filename.
 
-### RTX 50 / Blackwell build — `build_lib_rtx50.sh`
+### RTX 50 / Blackwell build — `tuned/build.sh rtx50`
 
 Same layout as RTX 40, with `rtx50` in place of `rtx40`:
 `libfaiss-rtx50-cu132.so`, `libfaiss_c-rtx50-cu132.so`.
 
-### GB10 / DGX Spark (aarch64, SM 121) build — `build_lib_gb10.sh`
+### GB10 / DGX Spark (aarch64, SM 121) build — `tuned/build.sh gb10`
 
 | Library | Filename | Notes |
 |---------|----------|-------|
@@ -201,23 +199,23 @@ Same layout as RTX 40, with `rtx50` in place of `rtx40`:
 | C API wrapper | `libfaiss_c-gb10-cu132.so` | `FAISS_C_OUTPUT_NAME=faiss_c-gb10-cu132` |
 | cuVS companion | `libcuvs-gb10-cu132.so` | From `zbrad/cuvs`, SM 121 only |
 
-### GB10 Python wheel — `build_wheel_gb10.sh`
+### GB10 Python wheel — `tuned/wheel.sh gb10`
 
 | Artifact | Name | Notes |
 |----------|------|-------|
 | Python wheel | `faiss-gb10-cu132` | `FAISS_VARIANT=gb10-cu132` in `setup.py` |
-| Built by | `build_wheel_gb10.sh` | Orchestrates lib → pkg → wheel steps |
+| Built by | `tuned/build.sh gb10` + `tuned/wheel.sh gb10` | Consolidates the old lib -> pkg -> wheel steps |
 | Stage dir | `_libfaiss_stage_gb10/` | Mirrors `_libfaiss_stage_rtx40/` / `_libfaiss_stage_rtx50/` |
 
 The `FAISS_OUTPUT_NAME` and `FAISS_C_OUTPUT_NAME` cmake variables are defined in
 `faiss/CMakeLists.txt` and `c_api/CMakeLists.txt` respectively and have no effect
 when left unset (an unconfigured upstream build produces `libfaiss.so` /
-`libfaiss_c.so`). The rtx40/rtx50/gb10 build scripts all set them so the three
-variants' libraries never collide if installed side by side.
+`libfaiss_c.so`). `tuned/build.sh` sets them for all three variants so their
+libraries never collide if installed side by side.
 
 The cuVS companion library name mirrors the zbrad/cuvs project's GPU-codename
 convention (switched from a CPU-arch/SM-number scheme on 2026-07-06; see that
-repo's `gpu-build/docs/WHEEL_NAMING.md`): `libcuvs-{codename}-{cuda_tag}.so`,
+repo's `tuned/docs/WHEEL_NAMING.md`): `libcuvs-{codename}-{cuda_tag}.so`,
 e.g. `libcuvs-gb10-cu132.so` for DGX Spark, `libcuvs-rtx40-cu132.so` /
 `libcuvs-rtx50-cu132.so` for the consumer x86_64 builds.
 
