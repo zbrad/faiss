@@ -10,14 +10,65 @@
 # Consolidates what used to be three separate scripts (build_lib_gb10.sh,
 # build_lib_rtx40.sh, build_lib_rtx50.sh), parameterized by
 # tuned/devices/<variant>.conf. gb10 remains structurally different from
-# rtx40/rtx50 (OpenBLAS vs MKL, no AVX2/AVX512, a local zbrad/cuvs
-# dependency check + explicit CMake wiring that rtx40/rtx50 don't have --
-# see tuned/devices/gb10.conf's GPU_TUNED_USES_LOCAL_CUVS note) -- handled
-# below as an explicit branch rather than forced into a shared path that
-# doesn't apply to both.
+# rtx40/rtx50 in BLAS choice only (OpenBLAS vs MKL, no AVX2/AVX512 -- see
+# GPU_TUNED_BLAS in tuned/devices/<variant>.conf) -- handled below as an
+# explicit branch. cuVS wiring itself is now uniform across all three (see
+# resolve_cuvs_release below) -- it used to be gb10-only, wired to a local
+# sibling zbrad/cuvs checkout's build dir; now all three variants download
+# and extract the matching published zbrad/cuvs tuned-builds release
+# instead (see zbrad/cuvs tuned/package.sh), which also covers rtx40/rtx50
+# for the first time -- they previously fell through to bare
+# find_package(cuvs)'s default (conda/system) discovery, silently NOT
+# consuming the tuned single-arch cuvs build at all.
 #
 # See tuned/wheel.sh for the next stage (Python/SWIG bindings + wheel).
 set -e
+
+# resolve_cuvs_release <variant> <cuda_tag> — download + extract the
+# matching zbrad/cuvs tuned-builds release (see that repo's
+# tuned/package.sh) into tuned/_cuvs_release/<variant>-<cuda_tag>/, unless
+# already present there. Prints the extracted root on stdout via the
+# CUVS_RELEASE_DIR variable set in the caller's scope.
+resolve_cuvs_release() {
+    local variant="$1" cuda_tag="$2"
+    CUVS_RELEASE_DIR="${FAISS_ROOT}/tuned/_cuvs_release/${variant}-${cuda_tag}"
+
+    if [[ -n "$(find "${CUVS_RELEASE_DIR}" -maxdepth 3 -iname 'cuvs-config.cmake' 2>/dev/null)" ]]; then
+        echo "cuVS release already extracted: ${CUVS_RELEASE_DIR} (set FORCE_CUVS_DOWNLOAD=1 to re-fetch)"
+        [[ "${FORCE_CUVS_DOWNLOAD:-0}" != "1" ]] && return 0
+    fi
+
+    echo "Looking up zbrad/cuvs tuned-builds release for ${variant}-${cuda_tag}..."
+    local tag
+    tag="$(gh release list --repo zbrad/cuvs --json tagName -q '.[].tagName' 2>/dev/null \
+        | grep -E -- "-${variant}-${cuda_tag}\$" | head -1)"
+    if [[ -z "${tag}" ]]; then
+        echo "ERROR: no zbrad/cuvs release found matching '*-${variant}-${cuda_tag}'." >&2
+        echo "  Available releases:" >&2
+        gh release list --repo zbrad/cuvs --json tagName -q '.[].tagName' 2>/dev/null | sed 's/^/    /' >&2
+        echo "  Build and publish one first: cd \$(dirname "'"'"${FAISS_ROOT}"'"'")/cuvs && bash tuned/build.sh ${variant} && bash tuned/package.sh ${variant}" >&2
+        exit 1
+    fi
+    echo "Found release: ${tag}"
+
+    rm -rf "${CUVS_RELEASE_DIR}"
+    mkdir -p "${CUVS_RELEASE_DIR}"
+    local dl_dir
+    dl_dir="$(mktemp -d)"
+    gh release download "${tag}" --repo zbrad/cuvs --pattern '*.tar.gz' --dir "${dl_dir}"
+    local tarball
+    tarball="$(ls "${dl_dir}"/*.tar.gz | head -1)"
+    [[ -z "${tarball}" ]] && { echo "ERROR: release ${tag} has no .tar.gz asset." >&2; exit 1; }
+    tar -xzf "${tarball}" -C "${CUVS_RELEASE_DIR}"
+    rm -rf "${dl_dir}"
+
+    if [[ ! -f "${CUVS_RELEASE_DIR}/lib/libcuvs-${variant}-${cuda_tag}.so" ]]; then
+        echo "ERROR: extracted release ${tag} does not contain lib/libcuvs-${variant}-${cuda_tag}.so" >&2
+        echo "  Contents: $(find "${CUVS_RELEASE_DIR}" -maxdepth 2)" >&2
+        exit 1
+    fi
+    echo "Extracted to: ${CUVS_RELEASE_DIR}"
+}
 
 GPU_TUNED_ARG_VARIANT="$1"
 FAISS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -67,21 +118,24 @@ CMAKE_ARGS=(
     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE
 )
 
-if [[ "${GPU_TUNED_USES_LOCAL_CUVS}" == "true" ]]; then
-    # GB10: verify + wire in a local zbrad/cuvs build explicitly.
+# --- cuVS wiring: uniform across all three variants (see resolve_cuvs_release above) ---
+CUVS_DIR_ARGS=()
+if [[ "$FAISS_ENABLE_CUVS" == "ON" ]]; then
+    resolve_cuvs_release "${GPU_TUNED_VARIANT}" "${FAISS_CUDA_TAG}"
+    CUVS_SO="${CUVS_RELEASE_DIR}/lib/libcuvs-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so"
+    CUVS_CMAKE_DIR="$(dirname "$(find "${CUVS_RELEASE_DIR}" -maxdepth 3 -iname 'cuvs-config.cmake' | head -1)")"
+    CUVS_DIR_ARGS=(
+        -DFAISS_CUVS_GB10_LIBRARY="${CUVS_SO}"
+        -Dcuvs_DIR="${CUVS_CMAKE_DIR}"
+    )
+    echo "cuVS library: ${CUVS_SO}"
+    echo "cuVS cmake config: ${CUVS_CMAKE_DIR}"
+fi
+
+if [[ "${GPU_TUNED_BLAS}" == "openblas" ]]; then
+    # GB10: OpenBLAS (no MKL on aarch64).
     LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
     export LD_LIBRARY_PATH
-
-    GITHUB_ROOT="${GITHUB_ROOT:-$(dirname "$FAISS_ROOT")}"
-    CUVS_REPO="${CUVS_REPO:-${GITHUB_ROOT}/cuvs}"
-    CUVS_DIR="${CUVS_DIR:-${CUVS_REPO}/cpp/build}"
-    echo "[1b] Verifying libcuvs-${GPU_TUNED_VARIANT}..."
-    if [[ ! -f "${CUVS_DIR}/libcuvs-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so" ]]; then
-        echo "ERROR: libcuvs-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so not found at ${CUVS_DIR}" >&2
-        echo "  Build it first: cd ${CUVS_REPO} && bash tuned/build.sh ${GPU_TUNED_VARIANT}" >&2
-        exit 1
-    fi
-    echo "cuVS library: ${CUVS_DIR}/libcuvs-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so"
 
     if [[ ! -f "$GPU_TUNED_OPENBLAS_LIB" ]]; then
         echo "ERROR: OpenBLAS not found at $GPU_TUNED_OPENBLAS_LIB" >&2
@@ -94,16 +148,15 @@ if [[ "${GPU_TUNED_USES_LOCAL_CUVS}" == "true" ]]; then
         -DFAISS_ENABLE_MKL=OFF
         -DBLAS_LIBRARIES="$GPU_TUNED_OPENBLAS_LIB"
         -DLAPACK_LIBRARIES="$GPU_TUNED_OPENBLAS_LIB"
-        -DFAISS_CUVS_GB10_LIBRARY="${CUVS_DIR}/libcuvs-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so"
-        -Dcuvs_DIR="$CUVS_DIR"
         -DCMAKE_PREFIX_PATH="$CUDA_HOME"
+        "${CUVS_DIR_ARGS[@]}"
     )
 
     # Redirect all output to a log file inside the build dir (gb10 convention).
     mkdir -p "$BUILD_DIR"
     exec > >(tee "$BUILD_DIR/build.log") 2>&1
 else
-    # RTX 40/50: Intel MKL, no local-cuvs wiring (see the note above).
+    # RTX 40/50: Intel MKL.
     MKL_ROOT="${GPU_TUNED_MKL_ROOT}"
     MKL_INCLUDE_DIR="${MKL_INCLUDE_DIR:-$MKL_ROOT/include}"
     MKL_LIB="${MKL_LIB:-$MKL_ROOT/lib/libmkl_rt.so}"
@@ -165,6 +218,7 @@ else
         -DBLAS_LIBRARIES="$MKL_LIB"
         -DLAPACK_LIBRARIES="$MKL_LIB"
         -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH"
+        "${CUVS_DIR_ARGS[@]}"
     )
 fi
 
