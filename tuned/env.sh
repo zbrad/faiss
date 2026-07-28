@@ -53,6 +53,18 @@ if [[ "$(uname -m)" != "${GPU_TUNED_PLATFORM}" ]]; then
     return 1 2>/dev/null || exit 1
 fi
 
+# List installed toolkits under /usr/local/cuda-<ver> (glob, sorted). Used
+# both to derive the default FAISS_CUDA_VER below (highest installed, not
+# a hardcoded version that inevitably goes stale -- e.g. this default was
+# "13.2" even after 13.3 was installed here) and to give actionable
+# guidance instead of a bare "wrong version" warning.
+faiss_installed_cuda_toolkits() {
+    local d
+    for d in /usr/local/cuda-[0-9]*; do
+        [ -d "$d" ] && basename "$d" | sed 's/^cuda-//'
+    done | sort -V
+}
+
 # --- Resolve FAISS_CUDA_VER / FAISS_CUDA_TAG (specify either, derive the other) ---
 if [ -n "${FAISS_CUDA_VER:-}" ]; then
     : "${FAISS_CUDA_TAG:=cu${FAISS_CUDA_VER//./}}"
@@ -61,15 +73,13 @@ elif [ -n "${FAISS_CUDA_TAG:-}" ]; then
     : "${FAISS_CUDA_VER:=${_faiss_cuda_digits%?}.${_faiss_cuda_digits: -1}}"
     unset _faiss_cuda_digits
 fi
-export FAISS_CUDA_VER="${FAISS_CUDA_VER:-13.2}"
+if [ -z "${FAISS_CUDA_VER:-}" ]; then
+    _faiss_latest="$(faiss_installed_cuda_toolkits | tail -1)"
+    FAISS_CUDA_VER="${_faiss_latest:-13.2}"  # last-resort fallback if nothing is installed yet
+    unset _faiss_latest
+fi
+export FAISS_CUDA_VER
 export FAISS_CUDA_TAG="${FAISS_CUDA_TAG:-cu${FAISS_CUDA_VER//./}}"
-
-faiss_installed_cuda_toolkits() {
-    local d
-    for d in /usr/local/cuda-[0-9]*; do
-        [ -d "$d" ] && basename "$d" | sed 's/^cuda-//'
-    done | sort -V
-}
 
 # --- Resolve CUDA_HOME to the matching toolkit when not explicitly set ---
 if [ -z "${CUDA_HOME:-}" ]; then
