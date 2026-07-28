@@ -149,6 +149,55 @@ if [[ "$FAISS_ENABLE_CUVS" == "ON" ]]; then
     )
     echo "cuVS library: ${CUVS_SO}"
     echo "cuVS cmake config: ${CUVS_CMAKE_DIR}"
+
+    # cuvs-dependencies.cmake's find_dependency(CCCL) chain (CUB/Thrust/
+    # libcudacxx/CCCL) searches CMAKE_PREFIX_PATH + system paths broadly,
+    # and can resolve to a DIFFERENT installed CUDA toolkit than the one
+    # nvcc itself uses -- confirmed empirically on this exact host: WSL's
+    # default Windows-PATH interop exposes side-by-side Windows CUDA
+    # installs, and one of them won this search ahead of CUDA_HOME's own
+    # bundled copy. Pin explicitly to CUDA_HOME's own CCCL so this can't
+    # happen, rather than relying on search-order luck.
+    #
+    # This pin is only correct if CUDA_HOME's own bundled CCCL actually
+    # satisfies whatever minimum version raft/cuvs's exported dependencies
+    # declare -- confirmed empirically: CUDA 13.3 ships CCCL 3.3.3, which
+    # satisfies the "3.3.3.0" minimum this build actually needed; CUDA
+    # 13.2 ships only 3.2.0, which does NOT (this pin was briefly reverted
+    # after a test run using CUDA_HOME=13.2 correctly failed the version
+    # check and got rejected by CMake -- that wasn't a bug in the pin,
+    # it was CUDA 13.2 genuinely being too old, exactly the same real risk
+    # tuned/env.sh's "use the latest installed toolkit" default now exists
+    # to avoid). If a toolkit's own bundled CCCL is ever insufficient, the
+    # correct behavior is exactly what this produces: fail loudly and tell
+    # the caller to use a newer toolkit -- not silently fall through to
+    # whatever CMake's broader search happens to find instead.
+    # Remember what we pinned (declare -A, associative array) so the
+    # post-configure step can confirm CMake actually honored it -- see
+    # gpu_tuned_verify_pin_honored's docstring for why a silent override
+    # is unconditionally fatal, not just a version-mismatch warning.
+    #
+    # Deliberately NOT pinning/verifying the "CCCL" umbrella package
+    # itself (only its CUB/Thrust/libcudacxx sub-components) -- confirmed
+    # empirically its own _DIR resolution is vestigial here: even when
+    # CCCL_DIR itself resolved to the wrong (Windows) install, the actual
+    # cache variables that drive real compilation (_CUB_INCLUDE_DIR,
+    # _THRUST_INCLUDE_DIR, _libcudacxx_INCLUDE_DIR) all still correctly
+    # pointed at the Linux toolkit's own headers, because those come from
+    # the CUB/Thrust/libcudacxx pins, not from CCCL_DIR. Pinning/checking
+    # it anyway would fail the build over a resolution that doesn't
+    # actually affect what gets compiled.
+    declare -A CCCL_PINNED_DIR=()
+    CCCL_ROOT="${CUDA_HOME}/targets/$(uname -m)-linux/lib/cmake"
+    for _cccl_pkg in "CUB:cub" "Thrust:thrust" "libcudacxx:libcudacxx"; do
+        _cccl_var="${_cccl_pkg%%:*}"
+        _cccl_name="${_cccl_pkg#*:}"
+        if [[ -f "${CCCL_ROOT}/${_cccl_name}/${_cccl_name}-config.cmake" ]]; then
+            CUVS_DIR_ARGS+=("-D${_cccl_var}_DIR=${CCCL_ROOT}/${_cccl_name}")
+            CCCL_PINNED_DIR["${_cccl_var}"]="${CCCL_ROOT}/${_cccl_name}"
+        fi
+    done
+    unset _cccl_pkg _cccl_var _cccl_name
 fi
 # cuvs-config.cmake's find_dependency(raft)/find_dependency(rmm) need
 # CMAKE_PREFIX_PATH to include the release's ROOT (not just lib/cmake/cuvs)
@@ -258,6 +307,38 @@ echo "CUDA compiler: $(nvcc --version | grep -E 'release|version')"
 echo "[2/3] Configuring with CMake..."
 rm -rf "$BUILD_DIR"
 cmake -B "$BUILD_DIR" "${CMAKE_ARGS[@]}" .
+
+# Verify what CUB/Thrust/libcudacxx actually resolved to, not just what we
+# asked for -- the explicit pin above is best-effort (only applies when
+# CUDA_HOME bundles its own CCCL copy; older toolkits might not), so check
+# the real outcome via CMakeCache.txt rather than trusting the pin
+# blindly. gpu_tuned_verify_pin_honored runs FIRST and is unconditionally
+# fatal on any override (a rejected pin is itself the real signal
+# something's wrong, regardless of whether the fallback happens to land
+# on an acceptable version) -- gpu_tuned_verify_cccl_toolkit_match after
+# it is a secondary, version-level diagnostic for cases where no pin was
+# ever attempted (e.g. CUDA_HOME had no bundled CCCL at all). The "CCCL"
+# umbrella package itself is deliberately excluded here too -- see the
+# pin loop's comment above for why its own _DIR resolution doesn't
+# reflect what's actually compiled against.
+if [[ "$FAISS_ENABLE_CUVS" == "ON" ]]; then
+    for _cccl_pkg in CUB Thrust libcudacxx; do
+        # Match BOTH :PATH= (find_package's own cache type) and
+        # :UNINITIALIZED= (the type an explicit `-D<var>=...` command-line
+        # pin creates, unlike find_package's own :PATH -- confirmed
+        # empirically our CUB/Thrust/libcudacxx pins landed as
+        # UNINITIALIZED, not PATH). `|| true`: no match is a real,
+        # legitimate outcome (e.g. this package was never pinned/found at
+        # all), not a script-fatal condition -- grep's own exit 1 on no
+        # match must not trip `set -e` here, or the whole verification
+        # loop silently vanishes with zero output, which is exactly what
+        # happened the first time this ran.
+        _cccl_dep_dir="$(grep -oP "^${_cccl_pkg}_DIR:(PATH|UNINITIALIZED)=\K.*" "${BUILD_DIR}/CMakeCache.txt" 2>/dev/null || true)"
+        gpu_tuned_verify_pin_honored "${_cccl_pkg}" "${CCCL_PINNED_DIR[${_cccl_pkg}]:-}" "${_cccl_dep_dir}" || exit 1
+        gpu_tuned_verify_cccl_toolkit_match "${_cccl_dep_dir}" "${_cccl_pkg}" "${FAISS_CUDA_VER}" || exit 1
+    done
+    unset _cccl_pkg _cccl_dep_dir
+fi
 
 echo "[3/3] Building libraries..."
 num_jobs=${FAISS_BUILD_JOBS:-$(nproc)}
