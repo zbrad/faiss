@@ -33,7 +33,7 @@ resolve_cuvs_release() {
     local variant="$1" cuda_tag="$2"
     CUVS_RELEASE_DIR="${FAISS_ROOT}/tuned/_cuvs_release/${variant}-${cuda_tag}"
 
-    if [[ -n "$(find "${CUVS_RELEASE_DIR}" -maxdepth 3 -iname 'cuvs-config.cmake' 2>/dev/null)" ]]; then
+    if [[ -n "$(find "${CUVS_RELEASE_DIR}" -maxdepth 4 -iname 'cuvs-config.cmake' 2>/dev/null)" ]]; then
         echo "cuVS release already extracted: ${CUVS_RELEASE_DIR} (set FORCE_CUVS_DOWNLOAD=1 to re-fetch)"
         [[ "${FORCE_CUVS_DOWNLOAD:-0}" != "1" ]] && return 0
     fi
@@ -100,6 +100,19 @@ echo "FAISS_ENABLE_CUVS: $FAISS_ENABLE_CUVS"
 echo "BUILD_DIR:         $BUILD_DIR"
 echo ""
 
+# ccache as compiler launcher when available (no benefit on a cold cache,
+# but every subsequent rebuild against the same sources hits the cache
+# instead of recompiling -- see zbrad/cuvs tuned/build.sh's identical note).
+CMAKE_LAUNCHER_ARGS=()
+if command -v ccache >/dev/null 2>&1; then
+    echo "ccache found -- using as compiler launcher (CCACHE_DIR=${CCACHE_DIR:-\$HOME/.cache/ccache})"
+    CMAKE_LAUNCHER_ARGS=(
+        -DCMAKE_CUDA_COMPILER_LAUNCHER=ccache
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache
+    )
+fi
+
 CMAKE_ARGS=(
     -DBUILD_SHARED_LIBS=ON
     -DFAISS_ENABLE_C_API=ON
@@ -116,6 +129,7 @@ CMAKE_ARGS=(
     -DFAISS_OUTPUT_NAME="faiss-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"
     -DFAISS_C_OUTPUT_NAME="faiss_c-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"
     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE
+    "${CMAKE_LAUNCHER_ARGS[@]}"
 )
 
 # --- cuVS wiring: uniform across all three variants (see resolve_cuvs_release above) ---
@@ -123,7 +137,7 @@ CUVS_DIR_ARGS=()
 if [[ "$FAISS_ENABLE_CUVS" == "ON" ]]; then
     resolve_cuvs_release "${GPU_TUNED_VARIANT}" "${FAISS_CUDA_TAG}"
     CUVS_SO="${CUVS_RELEASE_DIR}/lib/libcuvs-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so"
-    CUVS_CMAKE_DIR="$(dirname "$(find "${CUVS_RELEASE_DIR}" -maxdepth 3 -iname 'cuvs-config.cmake' | head -1)")"
+    CUVS_CMAKE_DIR="$(dirname "$(find "${CUVS_RELEASE_DIR}" -maxdepth 4 -iname 'cuvs-config.cmake' | head -1)")"
     # A published cuvs release could have been built against a different
     # CUDA minor version than this environment's own FAISS_CUDA_VER --
     # check major-version compat before linking against it (see
@@ -136,6 +150,15 @@ if [[ "$FAISS_ENABLE_CUVS" == "ON" ]]; then
     echo "cuVS library: ${CUVS_SO}"
     echo "cuVS cmake config: ${CUVS_CMAKE_DIR}"
 fi
+# cuvs-config.cmake's find_dependency(raft)/find_dependency(rmm) need
+# CMAKE_PREFIX_PATH to include the release's ROOT (not just lib/cmake/cuvs)
+# so CMake's standard <prefix>/lib/cmake/<name> search suffix finds their
+# sibling raft-config.cmake/rmm-config.cmake (vendored in by zbrad/cuvs's
+# tuned/build.sh -- see that repo's notes). Confirmed empirically: without
+# this, cuvs_DIR alone finds cuvs-config.cmake fine but CMake still errors
+# "target rmm::rmm not found" resolving cuvs::cuvs's link interface.
+CUVS_PREFIX_PATH_EXTRA=""
+[[ "$FAISS_ENABLE_CUVS" == "ON" ]] && CUVS_PREFIX_PATH_EXTRA=";${CUVS_RELEASE_DIR}"
 
 if [[ "${GPU_TUNED_BLAS}" == "openblas" ]]; then
     # GB10: OpenBLAS (no MKL on aarch64).
@@ -153,7 +176,7 @@ if [[ "${GPU_TUNED_BLAS}" == "openblas" ]]; then
         -DFAISS_ENABLE_MKL=OFF
         -DBLAS_LIBRARIES="$GPU_TUNED_OPENBLAS_LIB"
         -DLAPACK_LIBRARIES="$GPU_TUNED_OPENBLAS_LIB"
-        -DCMAKE_PREFIX_PATH="$CUDA_HOME"
+        -DCMAKE_PREFIX_PATH="${CUDA_HOME}${CUVS_PREFIX_PATH_EXTRA}"
         "${CUVS_DIR_ARGS[@]}"
     )
 
@@ -214,6 +237,7 @@ else
 
     CMAKE_PREFIX_PATH="$CUDA_HOME;$MKL_ROOT"
     [ -n "${CONDA_PREFIX:-}" ] && CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$CONDA_PREFIX"
+    CMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH}${CUVS_PREFIX_PATH_EXTRA}"
 
     CMAKE_ARGS+=(
         -DBLA_VENDOR=Intel10_64lp
@@ -249,13 +273,22 @@ FAISS_VERSION="$(grep -m1 -A2 '^project(faiss' CMakeLists.txt | grep -oP 'VERSIO
 # preserves objcopy's added ELF section.
 MAIN_LIB="$BUILD_DIR/faiss/libfaiss-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so"
 C_LIB="$BUILD_DIR/c_api/libfaiss_c-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so"
-for lib in "$MAIN_LIB" "$C_LIB"; do
-    if [[ -f "$lib" ]]; then
-        gpu_tuned_verify_arch "$lib" || exit 1
-        gpu_tuned_verify_cuda_compat "$lib" "${FAISS_CUDA_VER}" || exit 1
-        embed_build_info "$lib" "${GPU_TUNED_VARIANT}" "faiss" "${FAISS_VERSION}+${FAISS_CUDA_TAG}"
-    fi
-done
+
+# libfaiss (MAIN_LIB) has real .cu sources -- verify arch + CUDA compat,
+# then stamp. libfaiss_c (C_LIB) is a pure C++ wrapper with zero .cu
+# sources of its own (confirmed: c_api/CMakeLists.txt only ever
+# target_link_libraries(faiss_c PRIVATE faiss), never compiles device
+# code directly) -- it correctly has NO embedded cubins at all, so
+# gpu_tuned_verify_arch does not apply to it. Confirmed empirically: a
+# real build hit exactly this false-positive the first time this ran.
+if [[ -f "$MAIN_LIB" ]]; then
+    gpu_tuned_verify_arch "$MAIN_LIB" || exit 1
+    gpu_tuned_verify_cuda_compat "$MAIN_LIB" "${FAISS_CUDA_VER}" || exit 1
+    embed_build_info "$MAIN_LIB" "${GPU_TUNED_VARIANT}" "faiss" "${FAISS_VERSION}+${FAISS_CUDA_TAG}"
+fi
+if [[ -f "$C_LIB" ]]; then
+    embed_build_info "$C_LIB" "${GPU_TUNED_VARIANT}" "faiss" "${FAISS_VERSION}+${FAISS_CUDA_TAG}"
+fi
 
 mkdir -p "_libfaiss_stage_${GPU_TUNED_VARIANT}/"
 cmake --install "$BUILD_DIR" --prefix "_libfaiss_stage_${GPU_TUNED_VARIANT}/" --config Release

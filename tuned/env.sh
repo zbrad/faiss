@@ -187,6 +187,12 @@ embed_build_info() {
     local tmp
     tmp="$(mktemp)"
     echo "faiss-${variant} build: ${package} v${version}, https://github.com/zbrad/faiss, built $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "${tmp}"
+    # Idempotent: objcopy --add-section on a section name that already
+    # exists (e.g. rebuilding without a clean) empirically corrupts its own
+    # in-place rewrite ("file format not recognized" on its own temp
+    # output) -- strip any prior stamp first. Same fix as zbrad/cuvs's
+    # tuned/env.sh, hit for real running this session's live verification.
+    objcopy --remove-section .faiss_build_info "${so_path}" 2>/dev/null || true
     objcopy --add-section .faiss_build_info="${tmp}" "${so_path}"
     rm -f "${tmp}"
 }
