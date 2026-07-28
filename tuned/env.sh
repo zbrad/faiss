@@ -19,15 +19,15 @@
 #   FAISS_CUDA_TAG=cu133 bash tuned/build.sh gb10
 #
 # Exported: FAISS_CUDA_VER/FAISS_CUDA_TAG/CUDA_HOME (this repo's own
-# naming, unchanged), GPU_TUNED_VARIANT/CUDA_ARCH/HW_LABEL/BLAS/
-# OPENBLAS_LIB/MKL_ROOT/OPT_LEVEL/SWIG_TARGETS/MAKE_TARGETS/
-# USES_LOCAL_CUVS (from tuned/devices/<variant>.conf).
+# naming, unchanged), GPU_TUNED_VARIANT/PLATFORM/CUDA_ARCH/HW_LABEL/BLAS/
+# OPENBLAS_LIB/MKL_ROOT/OPT_LEVEL/SWIG_TARGETS/MAKE_TARGETS (from
+# tuned/devices/<variant>.conf).
 #
-# Also defines gpu_tuned_verify_arch() -- NEW, this repo previously had no
-# empirical "did the build actually target the requested arch" check at
-# all (confirmed via this session's gap analysis), unlike zbrad/cuvs and
-# zbrad/raft, which both already had (or were given) one. Same
-# cuobjdump-based approach, same function name, for consistency.
+# Also defines gpu_tuned_verify_arch(), gpu_tuned_verify_cuda_compat(), and
+# embed_build_info() -- NEW, this repo previously had none of these
+# empirical checks at all (confirmed via this session's gap analysis),
+# unlike zbrad/cuvs and zbrad/raft, which both already had (or were given)
+# equivalents. Same names/signatures, for consistency.
 
 GPU_TUNED_ARG_VARIANT="$1"
 if [[ -z "${GPU_TUNED_ARG_VARIANT}" ]]; then
@@ -38,9 +38,20 @@ fi
 GPU_TUNED_SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=devices/rtx50.conf
 source "${GPU_TUNED_SELF_DIR}/devices/${GPU_TUNED_ARG_VARIANT}.conf" || return 1 2>/dev/null || exit 1
-export GPU_TUNED_VARIANT GPU_TUNED_CUDA_ARCH GPU_TUNED_HW_LABEL GPU_TUNED_BLAS \
+export GPU_TUNED_VARIANT GPU_TUNED_PLATFORM GPU_TUNED_CUDA_ARCH GPU_TUNED_HW_LABEL GPU_TUNED_BLAS \
     GPU_TUNED_OPENBLAS_LIB GPU_TUNED_MKL_ROOT GPU_TUNED_OPT_LEVEL \
     GPU_TUNED_SWIG_TARGETS GPU_TUNED_MAKE_TARGETS
+
+# Fail loudly if this script runs on the wrong host, rather than letting a
+# mismatched build silently produce wrong-architecture binaries that only
+# surface as a confusing failure several steps later. Same check as
+# zbrad/cuvs's, zbrad/raft's, and zbrad/flash-attention's tuned/env.sh --
+# this repo previously had no equivalent at all.
+if [[ "$(uname -m)" != "${GPU_TUNED_PLATFORM}" ]]; then
+    echo "ERROR: tuned/env.sh: expected platform '${GPU_TUNED_PLATFORM}' for" \
+         "variant '${GPU_TUNED_VARIANT}', but uname -m reports '$(uname -m)'." >&2
+    return 1 2>/dev/null || exit 1
+fi
 
 # --- Resolve FAISS_CUDA_VER / FAISS_CUDA_TAG (specify either, derive the other) ---
 if [ -n "${FAISS_CUDA_VER:-}" ]; then
@@ -121,4 +132,61 @@ gpu_tuned_verify_arch() {
         return 1
     fi
     echo "OK: ${so_file} confirmed single-arch ${found} (matches requested sm_${GPU_TUNED_CUDA_ARCH})"
+}
+
+# gpu_tuned_verify_cuda_compat <path-to-.so> <expected-cuda-ver> — confirms
+# a compiled library's NEEDED libcudart.so.<major> matches the CUDA major
+# version this build/consumer expects. CUDA's runtime ABI is only
+# guaranteed forward-compatible WITHIN a major series (a minor-version
+# mismatch, e.g. built against 13.2 but running against 13.3, is fine; a
+# MAJOR mismatch, e.g. 12.x vs 13.x, is not) -- so this checks major only,
+# by design, not an exact version match. Complements gpu_tuned_verify_arch
+# (SM arch) with the orthogonal CUDA-runtime-version axis. Same
+# name/signature as zbrad/cuvs's tuned/env.sh equivalent -- used here both
+# on faiss's own build output and on the downloaded cuvs release .so (see
+# tuned/build.sh's resolve_cuvs_release), since a released cuvs artifact
+# could have been built against a different CUDA minor version than the
+# one currently active in this environment.
+gpu_tuned_verify_cuda_compat() {
+    local so_file="$1" expected_cuda_ver="$2"
+    if [[ ! -f "${so_file}" ]]; then
+        echo "ERROR: gpu_tuned_verify_cuda_compat: no such file: ${so_file}" >&2
+        return 1
+    fi
+    command -v objdump >/dev/null 2>&1 || {
+        echo "ERROR: gpu_tuned_verify_cuda_compat: objdump not found on PATH." >&2
+        return 1
+    }
+    local needed found_major expected_major
+    needed="$(objdump -p "${so_file}" 2>/dev/null | grep -oE 'libcudart\.so\.[0-9]+' | head -1)"
+    if [[ -z "${needed}" ]]; then
+        echo "WARNING: ${so_file} has no direct libcudart.so.N NEEDED entry -- skipping CUDA runtime compat check." >&2
+        return 0
+    fi
+    found_major="${needed##*.}"
+    expected_major="${expected_cuda_ver%%.*}"
+    if [[ "${found_major}" != "${expected_major}" ]]; then
+        echo "ERROR: ${so_file} was linked against CUDA runtime major ${found_major}" \
+             "(${needed}), but this build expects CUDA ${expected_cuda_ver}" \
+             "(major ${expected_major}). CUDA's runtime ABI is only forward-compatible" \
+             "within the same major version." >&2
+        return 1
+    fi
+    echo "OK: ${so_file} CUDA runtime compat confirmed (${needed}, matches expected major ${expected_major})"
+}
+
+# embed_build_info <so_path> <variant> <package> <version> — embeds a
+# greppable build-info string into a custom ELF section (.faiss_build_info)
+# on the given .so, readable later via `readelf -p .faiss_build_info <so>`
+# or plain `strings`. Safe at runtime: a custom section with no
+# program-header entry is simply ignored by the dynamic loader. Same
+# technique/name as zbrad/raft's tuned/raft_wheel_common.sh equivalent
+# (.raft_build_info).
+embed_build_info() {
+    local so_path="$1" variant="$2" package="$3" version="$4"
+    local tmp
+    tmp="$(mktemp)"
+    echo "faiss-${variant} build: ${package} v${version}, https://github.com/zbrad/faiss, built $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "${tmp}"
+    objcopy --add-section .faiss_build_info="${tmp}" "${so_path}"
+    rm -f "${tmp}"
 }

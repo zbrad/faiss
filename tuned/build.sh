@@ -124,6 +124,11 @@ if [[ "$FAISS_ENABLE_CUVS" == "ON" ]]; then
     resolve_cuvs_release "${GPU_TUNED_VARIANT}" "${FAISS_CUDA_TAG}"
     CUVS_SO="${CUVS_RELEASE_DIR}/lib/libcuvs-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so"
     CUVS_CMAKE_DIR="$(dirname "$(find "${CUVS_RELEASE_DIR}" -maxdepth 3 -iname 'cuvs-config.cmake' | head -1)")"
+    # A published cuvs release could have been built against a different
+    # CUDA minor version than this environment's own FAISS_CUDA_VER --
+    # check major-version compat before linking against it (see
+    # gpu_tuned_verify_cuda_compat's docstring for why major-only).
+    gpu_tuned_verify_cuda_compat "${CUVS_SO}" "${FAISS_CUDA_VER}" || exit 1
     CUVS_DIR_ARGS=(
         -DFAISS_CUVS_GB10_LIBRARY="${CUVS_SO}"
         -Dcuvs_DIR="${CUVS_CMAKE_DIR}"
@@ -236,6 +241,22 @@ echo "Using $num_jobs parallel jobs"
 # shellcheck disable=SC2086
 make -C "$BUILD_DIR" -j"$num_jobs" ${GPU_TUNED_MAKE_TARGETS}
 
+FAISS_VERSION="$(grep -m1 -A2 '^project(faiss' CMakeLists.txt | grep -oP 'VERSION\s+\K[0-9.]+')"
+
+# Verify + stamp the built libraries BEFORE cmake --install, so the staged
+# copy (what actually ships) already carries both the confirmed-good
+# checks and the embedded build-info section -- a plain file copy
+# preserves objcopy's added ELF section.
+MAIN_LIB="$BUILD_DIR/faiss/libfaiss-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so"
+C_LIB="$BUILD_DIR/c_api/libfaiss_c-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so"
+for lib in "$MAIN_LIB" "$C_LIB"; do
+    if [[ -f "$lib" ]]; then
+        gpu_tuned_verify_arch "$lib" || exit 1
+        gpu_tuned_verify_cuda_compat "$lib" "${FAISS_CUDA_VER}" || exit 1
+        embed_build_info "$lib" "${GPU_TUNED_VARIANT}" "faiss" "${FAISS_VERSION}+${FAISS_CUDA_TAG}"
+    fi
+done
+
 mkdir -p "_libfaiss_stage_${GPU_TUNED_VARIANT}/"
 cmake --install "$BUILD_DIR" --prefix "_libfaiss_stage_${GPU_TUNED_VARIANT}/" --config Release
 
@@ -244,9 +265,6 @@ if [[ "${GPU_TUNED_VARIANT}" != "gb10" ]]; then
     cp -f "$BUILD_DIR/faiss/libfaiss_avx512.so" "_libfaiss_stage_${GPU_TUNED_VARIANT}/lib/" 2>/dev/null || true
     cp -f "$BUILD_DIR/c_api/libfaiss_c_avx512.so" "_libfaiss_stage_${GPU_TUNED_VARIANT}/lib/" 2>/dev/null || true
 fi
-
-MAIN_LIB="$BUILD_DIR/faiss/libfaiss-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so"
-[[ -f "$MAIN_LIB" ]] && gpu_tuned_verify_arch "$MAIN_LIB"
 
 echo ""
 echo "========================================="
