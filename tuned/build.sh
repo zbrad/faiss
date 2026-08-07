@@ -206,8 +206,28 @@ fi
 # tuned/build.sh -- see that repo's notes). Confirmed empirically: without
 # this, cuvs_DIR alone finds cuvs-config.cmake fine but CMake still errors
 # "target rmm::rmm not found" resolving cuvs::cuvs's link interface.
+#
+# Also need CUDA_HOME/targets/<arch>-linux on CMAKE_PREFIX_PATH (not just
+# CUDA_HOME itself): raft-dependencies.cmake's find_dependency(CCCL) needs
+# a real CCCLConfig.cmake, which the CUDA toolkit ships under
+# targets/<arch>-linux/lib/cmake/cccl/, not under CUDA_HOME's own lib/cmake.
+# Without it, CCCL::CCCL never gets defined, and rmm::rmm's link interface
+# (which references CCCL::CCCL) fails to resolve -- cuvs_FOUND=FALSE even
+# though cuvs-config.cmake itself was found fine. Unrelated to the
+# deliberately-not-pinned CCCL_DIR above: that's about faiss's own direct
+# CUB/Thrust/libcudacxx compile flags; this is raft/rmm's own transitive
+# link-interface dependency, which really does need CCCL::CCCL to exist.
 CUVS_PREFIX_PATH_EXTRA=""
-[[ "$FAISS_ENABLE_CUVS" == "ON" ]] && CUVS_PREFIX_PATH_EXTRA=";${CUVS_RELEASE_DIR}"
+if [[ "$FAISS_ENABLE_CUVS" == "ON" ]]; then
+    # NVIDIA's CUDA toolkit target-triple directory name doesn't always
+    # match uname -m: aarch64 servers (GB10/DGX Spark included) ship under
+    # targets/sbsa-linux, not targets/aarch64-linux, even though `uname -m`
+    # reports "aarch64". Try the uname-derived guess first (correct for
+    # x86_64), fall back to sbsa-linux (confirmed present on this box).
+    CUDA_TARGET_SUBDIR="$(uname -m)-linux"
+    [[ -d "${CUDA_HOME}/targets/${CUDA_TARGET_SUBDIR}" ]] || CUDA_TARGET_SUBDIR="sbsa-linux"
+    CUVS_PREFIX_PATH_EXTRA=";${CUVS_RELEASE_DIR};${CUDA_HOME}/targets/${CUDA_TARGET_SUBDIR}"
+fi
 
 if [[ "${GPU_TUNED_BLAS}" == "openblas" ]]; then
     # GB10: OpenBLAS (no MKL on aarch64).
