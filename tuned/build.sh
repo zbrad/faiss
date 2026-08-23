@@ -383,7 +383,7 @@ C_LIB="$BUILD_DIR/c_api/libfaiss_c-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so"
 # gpu_tuned_verify_arch does not apply to it. Confirmed empirically: a
 # real build hit exactly this false-positive the first time this ran.
 if [[ -f "$MAIN_LIB" ]]; then
-    gpu_tuned_verify_arch "$MAIN_LIB" || exit 1
+    gpu_tuned_verify_arch "$MAIN_LIB" "${GPU_TUNED_CUDA_ARCH}" || exit 1
     gpu_tuned_verify_cuda_compat "$MAIN_LIB" "${FAISS_CUDA_VER}" || exit 1
     embed_build_info "$MAIN_LIB" "${GPU_TUNED_VARIANT}" "faiss" "${FAISS_VERSION}+${FAISS_CUDA_TAG}" "${GPU_TUNED_HW_LABEL}"
 fi

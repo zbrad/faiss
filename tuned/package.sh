@@ -58,7 +58,7 @@ if [[ ! -f "${INSTALLED_LIB}" ]]; then
     echo "  Run 'bash tuned/build.sh ${GPU_TUNED_VARIANT}' first." >&2
     exit 1
 fi
-gpu_tuned_verify_arch "${INSTALLED_LIB}" || exit 1
+gpu_tuned_verify_arch "${INSTALLED_LIB}" "${GPU_TUNED_CUDA_ARCH}" || exit 1
 gpu_tuned_verify_cuda_compat "${INSTALLED_LIB}" "${FAISS_CUDA_VER}" || exit 1
 embed_build_info "${INSTALLED_LIB}" "${GPU_TUNED_VARIANT}" "faiss" "${FAISS_VERSION}+${FAISS_CUDA_TAG}" "${GPU_TUNED_HW_LABEL}"
 
