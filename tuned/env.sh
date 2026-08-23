@@ -107,33 +107,14 @@ if command -v nvcc >/dev/null 2>&1; then
     unset _faiss_nvcc_ver
 fi
 
-# embed_build_info <so_path> <variant> <package> <version> [hw_label] —
-# embeds a greppable build-info string into a custom ELF section
-# (.faiss_build_info) on the given .so, readable later via
-# `readelf -p .faiss_build_info <so>` or plain `strings`. Safe at
-# runtime: a custom section with no program-header entry is simply
-# ignored by the dynamic loader. Same technique/name as zbrad/raft's
-# tuned/raft_wheel_common.sh equivalent (.raft_build_info).
-#
-# hw_label (optional, defaults to the bare variant if omitted) makes the
-# binary self-describing about WHICH hardware it targets, not just its
-# internal codename -- e.g. "RTX 50-series (Blackwell consumer,
-# desktop/laptop, SM 120a)" rather than just "rtx50". Without this, the
-# only human-readable description of scope lived in the GitHub release's
-# own title text, which goes stale independently of the binary.
+# embed_build_info now comes from common.sh (gpu_tuned_embed_build_info) --
+# every call site in this repo already passes package="faiss", so the
+# shared function's package-derived section name naturally lands on the
+# same .faiss_build_info this repo always used, and its message format is
+# byte-identical to what the old local version produced. Wrap it just to
+# keep call sites unchanged (repo_url baked in here).
 embed_build_info() {
-    local so_path="$1" variant="$2" package="$3" version="$4" hw_label="${5:-${2}}"
-    local tmp
-    tmp="$(mktemp)"
-    echo "faiss-${variant} build: ${package} v${version} (${hw_label}), https://github.com/zbrad/faiss, built $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "${tmp}"
-    # Idempotent: objcopy --add-section on a section name that already
-    # exists (e.g. rebuilding without a clean) empirically corrupts its own
-    # in-place rewrite ("file format not recognized" on its own temp
-    # output) -- strip any prior stamp first. Same fix as zbrad/cuvs's
-    # tuned/env.sh, hit for real running this session's live verification.
-    objcopy --remove-section .faiss_build_info "${so_path}" 2>/dev/null || true
-    objcopy --add-section .faiss_build_info="${tmp}" "${so_path}"
-    rm -f "${tmp}"
+    gpu_tuned_embed_build_info "$1" "$2" "$3" "$4" "$5" "https://github.com/zbrad/faiss"
 }
 
 # gpu_tuned_verify_pin_honored <package-name> <pinned-dir> <actual-dir>
