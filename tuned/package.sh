@@ -78,11 +78,8 @@ RELEASE_TITLE="faiss ${SHORT_VER} — ${GPU_TUNED_HW_LABEL} (${FAISS_CUDA_TAG})"
 
 echo ""
 echo "Publishing to GitHub release ${RELEASE_TAG}..."
-gh release create "${RELEASE_TAG}" \
-    --repo zbrad/faiss \
-    --title "${RELEASE_TITLE}" \
-    --target "tuned-builds" \
-    --notes "lib${FAISS_LIB_NAME}.so ${FAISS_VERSION} install tree (lib/, include/) for ${GPU_TUNED_HW_LABEL}, single-arch (sm_${GPU_TUNED_CUDA_ARCH}). Links cuvs::cuvs against zbrad/cuvs's published tuned-builds release (see tuned/build.sh's resolve_cuvs_release)." \
+gpu_tuned_publish_release "zbrad/faiss" "${RELEASE_TAG}" "${RELEASE_TITLE}" \
+    "lib${FAISS_LIB_NAME}.so ${FAISS_VERSION} install tree (lib/, include/) for ${GPU_TUNED_HW_LABEL}, single-arch (sm_${GPU_TUNED_CUDA_ARCH}). Links cuvs::cuvs against zbrad/cuvs's published tuned-builds release (see tuned/build.sh's resolve_cuvs_release)." \
     "${TARBALL}#$(basename "${TARBALL}")"
 
 echo ""
