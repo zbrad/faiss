@@ -41,7 +41,7 @@ if [[ -z "${FAISS_VERSION}" ]]; then
     exit 1
 fi
 # e.g. 1.14.3 -> 1.14, matching raft's/cuvs's SHORT_VER convention.
-SHORT_VER="$(echo "${FAISS_VERSION}" | sed -E 's/^0*([0-9]+)\.0*([0-9]+)\..*/\1.\2/')"
+SHORT_VER="$(gpu_tuned_short_ver "${FAISS_VERSION}")" || exit 1
 
 echo "===================================================="
 echo "faiss ${GPU_TUNED_HW_LABEL} Package"
