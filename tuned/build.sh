@@ -89,7 +89,8 @@ PYTHON="${PYTHON:-python3}"
 PYTHON="$(command -v "$PYTHON")" || { echo "ERROR: Python interpreter '$PYTHON' not found on PATH. Set PYTHON to an absolute path." >&2; exit 1; }
 FAISS_ENABLE_CUVS="${FAISS_ENABLE_CUVS:-ON}"
 CUDA_ARCHS="${GPU_TUNED_CUDA_ARCH}-real"
-BUILD_DIR="_build_${GPU_TUNED_VARIANT}"
+BUILD_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/_build" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
+STAGE_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/_libfaiss_stage" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
 
 export PATH="$CUDA_HOME/bin:$PATH"
 
@@ -393,13 +394,13 @@ if [[ -f "$C_LIB" ]]; then
     embed_build_info "$C_LIB" "${GPU_TUNED_VARIANT}" "faiss" "${FAISS_VERSION}+${FAISS_CUDA_TAG}" "${GPU_TUNED_HW_LABEL}"
 fi
 
-mkdir -p "_libfaiss_stage_${GPU_TUNED_VARIANT}/"
-cmake --install "$BUILD_DIR" --prefix "_libfaiss_stage_${GPU_TUNED_VARIANT}/" --config Release
+mkdir -p "${STAGE_DIR}/"
+cmake --install "$BUILD_DIR" --prefix "${STAGE_DIR}/" --config Release
 
 # cmake --install omits avx512 variants on x86 (rtx40/rtx50); copy manually.
 if [[ "${GPU_TUNED_VARIANT}" != "gb10" ]]; then
-    cp -f "$BUILD_DIR/faiss/libfaiss_avx512.so" "_libfaiss_stage_${GPU_TUNED_VARIANT}/lib/" 2>/dev/null || true
-    cp -f "$BUILD_DIR/c_api/libfaiss_c_avx512.so" "_libfaiss_stage_${GPU_TUNED_VARIANT}/lib/" 2>/dev/null || true
+    cp -f "$BUILD_DIR/faiss/libfaiss_avx512.so" "${STAGE_DIR}/lib/" 2>/dev/null || true
+    cp -f "$BUILD_DIR/c_api/libfaiss_c_avx512.so" "${STAGE_DIR}/lib/" 2>/dev/null || true
 fi
 
 echo ""
@@ -409,4 +410,4 @@ echo "========================================="
 echo "Libraries built in: $BUILD_DIR/faiss/"
 echo "  libfaiss-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so    (main C++ library)"
 echo "  libfaiss_c-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so  (C API wrapper)"
-echo "Staged in: _libfaiss_stage_${GPU_TUNED_VARIANT}/"
+echo "Staged in: ${STAGE_DIR}/"

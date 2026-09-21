@@ -30,7 +30,7 @@ GPU_TUNED_ARG_VARIANT="$1"
 source "${REPODIR}/tuned/env.sh" "${GPU_TUNED_ARG_VARIANT}" || exit 1
 
 FAISS_LIB_NAME="faiss-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"
-STAGE_DIR="${REPODIR}/_libfaiss_stage_${GPU_TUNED_VARIANT}"
+STAGE_DIR="$(gpu_tuned_cuda_subdir "${REPODIR}/_libfaiss_stage" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
 
 # Faiss's own version lives in CMakeLists.txt's project(... VERSION x.y.z),
 # not a standalone VERSION file (unlike raft/cuvs) -- extract it the same
@@ -62,7 +62,7 @@ gpu_tuned_verify_arch "${INSTALLED_LIB}" "${GPU_TUNED_CUDA_ARCH}" || exit 1
 gpu_tuned_verify_cuda_compat "${INSTALLED_LIB}" "${FAISS_CUDA_VER}" || exit 1
 embed_build_info "${INSTALLED_LIB}" "${GPU_TUNED_VARIANT}" "faiss" "${FAISS_VERSION}+${FAISS_CUDA_TAG}" "${GPU_TUNED_HW_LABEL}"
 
-DIST_DIR="${REPODIR}/dist/${GPU_TUNED_VARIANT}"
+DIST_DIR="$(gpu_tuned_cuda_subdir "${REPODIR}/dist" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
 rm -rf "${DIST_DIR}"
 mkdir -p "${DIST_DIR}"
 PKG_NAME="faiss-${SHORT_VER}-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"

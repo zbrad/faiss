@@ -27,9 +27,9 @@ PYTHON="$(command -v "$PYTHON")" || { echo "ERROR: Python interpreter '$PYTHON' 
 FAISS_ENABLE_CUVS="${FAISS_ENABLE_CUVS:-ON}"
 FAISS_VARIANT="${FAISS_VARIANT:-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}}"
 PY_VER=$(${PYTHON} -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
-BUILD_DIR="_build_python_${GPU_TUNED_VARIANT}_${PY_VER}"
-BUILD_OUTPUT_DIR="build_output_${GPU_TUNED_VARIANT}"
-STAGE_DIR="_libfaiss_stage_${GPU_TUNED_VARIANT}"
+BUILD_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/_build_python" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")/${PY_VER}"
+BUILD_OUTPUT_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/build_output" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
+STAGE_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/_libfaiss_stage" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
 
 export PATH="$CUDA_HOME/bin:$PATH"
 export CPATH="$CUDA_HOME/include:$CPATH"
@@ -37,8 +37,8 @@ export CPATH="$CUDA_HOME/include:$CPATH"
 if [[ "${GPU_TUNED_USES_LOCAL_CUVS}" == "true" ]]; then
     GITHUB_ROOT="${GITHUB_ROOT:-$(dirname "$FAISS_ROOT")}"
     CUVS_REPO="${CUVS_REPO:-${GITHUB_ROOT}/cuvs}"
-    CUVS_DIR="${CUVS_DIR:-${CUVS_REPO}/cpp/build}"
-    export LD_LIBRARY_PATH="$CUDA_HOME/lib64:${FAISS_ROOT}/${STAGE_DIR}/lib:$LD_LIBRARY_PATH"
+    CUVS_DIR="${CUVS_DIR:-$(gpu_tuned_cuda_subdir "${CUVS_REPO}/cpp/build" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")}"
+    export LD_LIBRARY_PATH="$CUDA_HOME/lib64:${STAGE_DIR}/lib:$LD_LIBRARY_PATH"
     CMAKE_PREFIX_PATH="$CUDA_HOME"
 else
     MKL_ROOT="${GPU_TUNED_MKL_ROOT}"
@@ -68,8 +68,8 @@ echo "[2/4] Configuring Python build with CMake..."
 rm -rf "$BUILD_DIR"
 CMAKE_ARGS=(
     -Dfaiss_ROOT="${STAGE_DIR}/"
-    -DCMAKE_LIBRARY_PATH="${FAISS_ROOT}/${STAGE_DIR}/lib"
-    -DCMAKE_SHARED_LINKER_FLAGS="-L${FAISS_ROOT}/${STAGE_DIR}/lib"
+    -DCMAKE_LIBRARY_PATH="${STAGE_DIR}/lib"
+    -DCMAKE_SHARED_LINKER_FLAGS="-L${STAGE_DIR}/lib"
     -DFAISS_ENABLE_GPU=ON
     -DFAISS_ENABLE_CUVS="$FAISS_ENABLE_CUVS"
     -DFAISS_OPT_LEVEL="$GPU_TUNED_OPT_LEVEL"
@@ -127,9 +127,9 @@ wheel_basename=$(basename "$wheel_file")
 if command -v auditwheel &>/dev/null; then
     echo "Repairing wheel with auditwheel..."
     if [[ "${GPU_TUNED_USES_LOCAL_CUVS}" == "true" ]]; then
-        export LD_LIBRARY_PATH="${FAISS_ROOT}/${STAGE_DIR}/lib:${CUVS_DIR}:${CUDA_HOME}/lib64:$LD_LIBRARY_PATH"
+        export LD_LIBRARY_PATH="${STAGE_DIR}/lib:${CUVS_DIR}:${CUDA_HOME}/lib64:$LD_LIBRARY_PATH"
     else
-        export LD_LIBRARY_PATH="${FAISS_ROOT}/${STAGE_DIR}/lib:${GPU_TUNED_MKL_ROOT}/lib:${CUDA_HOME}/lib64:$LD_LIBRARY_PATH"
+        export LD_LIBRARY_PATH="${STAGE_DIR}/lib:${GPU_TUNED_MKL_ROOT}/lib:${CUDA_HOME}/lib64:$LD_LIBRARY_PATH"
     fi
     auditwheel repair "$BUILD_OUTPUT_DIR/$wheel_basename" \
         --exclude libcudart.so.13 \

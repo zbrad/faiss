@@ -32,6 +32,8 @@ faiss/python/swigfaiss_sve.swig
 # tuned/build.sh intermediate artifacts (per-variant, see tuned/devices/*.conf)
 /_build_*/
 /_libfaiss_stage_*/
+/_libfaiss_stage/
+/_build_python/
 /tuned/_cuvs_release/
 
 # Python package build outputs
