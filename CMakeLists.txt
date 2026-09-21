@@ -74,7 +74,7 @@ if(FAISS_ENABLE_CUVS)
 endif()
 
 project(faiss
-  VERSION 1.14.3
+  VERSION 1.15.1
   DESCRIPTION "A library for efficient similarity search and clustering of dense vectors."
   HOMEPAGE_URL "https://github.com/facebookresearch/faiss"
   LANGUAGES ${FAISS_LANGUAGES})
@@ -139,6 +139,10 @@ if(FAISS_ENABLE_CUVS AND NOT TARGET cuvs::cuvs)
     )
     message(STATUS "cuVS gb10 override: cuvs::cuvs -> ${FAISS_CUVS_GB10_LIBRARY}")
   endif()
+endif()
+
+if(FAISS_ENABLE_CUVS AND NOT TARGET rmm::rmm)
+  find_package(rmm REQUIRED)
 endif()
 
 add_subdirectory(faiss)

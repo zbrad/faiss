@@ -386,7 +386,7 @@ class TestSQByte(unittest.TestCase):
             faiss.ScalarQuantizer.QT_8bit_direct,
             faiss.ScalarQuantizer.QT_8bit_direct_signed,
         ):
-            for d in 13, 16, 24:
+            for d in 13, 16, 24, 32, 64, 128:
                 for metric_type in faiss.METRIC_L2, faiss.METRIC_INNER_PRODUCT:
                     self.subtest_8bit_direct(metric_type, d, quantizer)
 
