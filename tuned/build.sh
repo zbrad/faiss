@@ -40,8 +40,10 @@ resolve_cuvs_release() {
 
     echo "Looking up zbrad/cuvs tuned-builds release for ${variant}-${cuda_tag}..."
     local tag
+    # cuvs tags are v<ver>-<variant>-<cuda_tag>[-g<sha>] (the sha suffix was added
+    # later); `gh release list` is newest-first, so head -1 is the newest match.
     tag="$(gh release list --repo zbrad/cuvs --json tagName -q '.[].tagName' 2>/dev/null \
-        | grep -E -- "-${variant}-${cuda_tag}\$" | head -1)"
+        | grep -E -- "-${variant}-${cuda_tag}(-g[0-9a-f]+)?\$" | head -1)"
     if [[ -z "${tag}" ]]; then
         echo "ERROR: no zbrad/cuvs release found matching '*-${variant}-${cuda_tag}'." >&2
         echo "  Available releases:" >&2
