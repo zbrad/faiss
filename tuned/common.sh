@@ -226,6 +226,13 @@ gpu_tuned_verify_cccl_version() {
 # latter used to leave the stamped binary itself with no way back to the
 # exact commit, unlike its GitHub release title. Auto-detecting here
 # means it can't be forgotten by a caller either way.
+#
+# Optional GPU_TUNED_BUILD_INFO_DEPS (env var, single line): what this
+# artifact bundles or was built against, appended as ", deps <text>" so it
+# is readable from the binary itself (e.g. "kvikio 26.12.00, raft
+# v26.12-gb10-cu134-g9d97792e"). Unset, the stamp is unchanged. An env var
+# rather than an 8th argument so the per-repo embed_build_info wrappers need
+# no change.
 gpu_tuned_embed_build_info() {
     local target="$1" variant="$2" package="$3" version="$4" hw_label="${5:-${2}}" repo_url="${6:-}" section_override="${7:-}"
     local section tmp git_sha
@@ -241,6 +248,7 @@ gpu_tuned_embed_build_info() {
         printf '%s-%s build: %s v%s (%s)' "${package}" "${variant}" "${package}" "${version}" "${hw_label}"
         [ -n "${repo_url}" ] && printf ', %s' "${repo_url}"
         printf ', commit %s' "${git_sha}"
+        [ -n "${GPU_TUNED_BUILD_INFO_DEPS:-}" ] && printf ', deps %s' "${GPU_TUNED_BUILD_INFO_DEPS//$'\n'/ }"
         printf ', built %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     } > "${tmp}"
     objcopy --remove-section "${section}" "${target}" 2>/dev/null || true
@@ -370,6 +378,63 @@ gpu_tuned_short_ver() {
         return 1
     fi
     echo "${short}"
+}
+
+# gpu_tuned_cuda_subdir <base-dir> <cuda-tag> [<variant>] — prints
+# <base-dir>/<cuda-tag>[/<variant>], the CUDA-version-specific form of a
+# per-repo output directory, so builds against two CUDA toolkits never share
+# one (a shared build dir carries the other toolkit's CMake cache, a shared
+# staging or dist dir gets overwritten or deleted by the other toolkit's
+# run, and a shared test log lets one toolkit's results satisfy the other's
+# publish gate). <cuda-tag> is the "cu133" form; <variant> is optional.
+# Fails (exit 1, message on stderr) on a malformed tag or variant.
+gpu_tuned_cuda_subdir() {
+    local base="$1" cuda_tag="$2" variant="${3:-}"
+    if [[ -z "${base}" ]]; then
+        echo "ERROR: gpu_tuned_cuda_subdir: base dir is empty." >&2
+        return 1
+    fi
+    if [[ ! "${cuda_tag}" =~ ^cu[0-9]{3,4}$ ]]; then
+        echo "ERROR: gpu_tuned_cuda_subdir: cuda tag '${cuda_tag}' is not of the form cu<digits> (e.g. cu133)." >&2
+        return 1
+    fi
+    if [[ -z "${variant}" ]]; then
+        echo "${base}/${cuda_tag}"
+    elif [[ "${variant}" =~ ^[a-z0-9_-]+$ ]]; then
+        echo "${base}/${cuda_tag}/${variant}"
+    else
+        echo "ERROR: gpu_tuned_cuda_subdir: variant '${variant}' is malformed." >&2
+        return 1
+    fi
+}
+
+# gpu_tuned_out_dir <kind> <repo-root> <cuda-tag> [<variant>] — the
+# CUDA-version-specific output directory for <kind> in the raft/cuvs layout:
+#   build    -> <repo-root>/cpp/build/<cuda-tag>/<variant>
+#   dist     -> <repo-root>/dist/<cuda-tag>/<variant>   (variant may be "shared")
+#   releases -> <repo-root>/tuned/releases/<cuda-tag>   (variant not used)
+# Repos with a different layout (faiss) call gpu_tuned_cuda_subdir directly.
+# Fails on an unknown kind, or a missing variant for build/dist.
+gpu_tuned_out_dir() {
+    local kind="$1" root="$2" cuda_tag="$3" variant="${4:-}"
+    case "${kind}" in
+        build|dist)
+            if [[ -z "${variant}" ]]; then
+                echo "ERROR: gpu_tuned_out_dir: '${kind}' needs a variant (got '${variant}')." >&2
+                return 1
+            fi
+            if [[ "${kind}" == "build" ]]; then
+                gpu_tuned_cuda_subdir "${root}/cpp/build" "${cuda_tag}" "${variant}"
+            else
+                gpu_tuned_cuda_subdir "${root}/dist" "${cuda_tag}" "${variant}"
+            fi
+            ;;
+        releases) gpu_tuned_cuda_subdir "${root}/tuned/releases" "${cuda_tag}" ;;
+        *)
+            echo "ERROR: gpu_tuned_out_dir: unknown kind '${kind}' (expected build, dist or releases)." >&2
+            return 1
+            ;;
+    esac
 }
 
 # gpu_tuned_wheel_version <wheel-path> <pkg-name-prefix> — extracts the
