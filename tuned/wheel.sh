@@ -34,18 +34,20 @@ STAGE_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/_libfaiss_stage" "${FAISS_CUDA
 export PATH="$CUDA_HOME/bin:$PATH"
 export CPATH="$CUDA_HOME/include:$CPATH"
 
-if [[ "${GPU_TUNED_USES_LOCAL_CUVS}" == "true" ]]; then
-    GITHUB_ROOT="${GITHUB_ROOT:-$(dirname "$FAISS_ROOT")}"
-    CUVS_REPO="${CUVS_REPO:-${GITHUB_ROOT}/cuvs}"
-    CUVS_DIR="${CUVS_DIR:-$(gpu_tuned_cuda_subdir "${CUVS_REPO}/cpp/build" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")}"
-    export LD_LIBRARY_PATH="$CUDA_HOME/lib64:${STAGE_DIR}/lib:$LD_LIBRARY_PATH"
-    CMAKE_PREFIX_PATH="$CUDA_HOME"
+# cuVS release dir: tuned/build.sh's resolve_cuvs_release already downloaded
+# and extracted the matching zbrad/cuvs release here (see that script) --
+# GPU_TUNED_USES_LOCAL_CUVS/CUVS_REPO pointed at a local sibling checkout's
+# build dir, a layout build.sh stopped using when it moved to consuming
+# published cuvs releases; kept as a dead branch until now.
+CUVS_RELEASE_DIR="${FAISS_ROOT}/tuned/_cuvs_release/${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"
+if [[ "${GPU_TUNED_BLAS}" == "openblas" ]]; then
+    MKL_ROOT=""
 else
     MKL_ROOT="${GPU_TUNED_MKL_ROOT}"
-    export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$MKL_ROOT/lib:$LD_LIBRARY_PATH"
-    CMAKE_PREFIX_PATH="$CUDA_HOME"
-    [ -n "${CONDA_PREFIX:-}" ] && CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$CONDA_PREFIX"
 fi
+export LD_LIBRARY_PATH="$CUDA_HOME/lib64:${STAGE_DIR}/lib${MKL_ROOT:+:${MKL_ROOT}/lib}:$LD_LIBRARY_PATH"
+CMAKE_PREFIX_PATH="$CUDA_HOME"
+[ -n "${CONDA_PREFIX:-}" ] && CMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH;$CONDA_PREFIX"
 
 echo "========================================="
 echo "Building FAISS Python Package (${GPU_TUNED_HW_LABEL})"
@@ -79,11 +81,20 @@ CMAKE_ARGS=(
     -DCMAKE_CUDA_TOOLKIT_INCLUDE_DIR="$CUDA_HOME/include"
     -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH"
 )
-if [[ "${GPU_TUNED_USES_LOCAL_CUVS}" == "true" ]]; then
+if [[ "${FAISS_ENABLE_CUVS}" == "ON" ]]; then
+    [ -d "${CUVS_RELEASE_DIR}" ] || { echo "ERROR: ${CUVS_RELEASE_DIR} not found. Run tuned/build.sh ${GPU_TUNED_VARIANT} first (it downloads the matching cuvs release)." >&2; exit 1; }
+    CUVS_CMAKE_DIR="$(dirname "$(find "${CUVS_RELEASE_DIR}" -maxdepth 4 -iname 'cuvs-config.cmake' | head -1)")"
+    # cuvs-config.cmake's find_dependency(raft)/find_dependency(rmm) need
+    # CMAKE_PREFIX_PATH to include the release root (for raft/rmm's sibling
+    # -config.cmake files) and CUDA_HOME's targets/<arch>-linux dir (for
+    # CCCLConfig.cmake) -- same requirement as tuned/build.sh's own cuvs
+    # wiring; see that script's comments for how this was confirmed.
+    CUDA_TARGET_SUBDIR="$(uname -m)-linux"
+    [[ -d "${CUDA_HOME}/targets/${CUDA_TARGET_SUBDIR}" ]] || CUDA_TARGET_SUBDIR="sbsa-linux"
     CMAKE_ARGS+=(
         -DCMAKE_CUDA_ARCHITECTURES="${GPU_TUNED_CUDA_ARCH}-real"
-        -Dcuvs_DIR="$CUVS_DIR"
-        -DFAISS_CUVS_GB10_LIBRARY="${CUVS_DIR}/libcuvs-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so"
+        -Dcuvs_DIR="$CUVS_CMAKE_DIR"
+        -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH};${CUVS_RELEASE_DIR};${CUDA_HOME}/targets/${CUDA_TARGET_SUBDIR}"
     )
 fi
 cmake -B "$BUILD_DIR" "${CMAKE_ARGS[@]}" faiss/python
