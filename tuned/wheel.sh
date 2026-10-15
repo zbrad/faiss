@@ -103,7 +103,11 @@ cmake -B "$BUILD_DIR" "${CMAKE_ARGS[@]}" \
     "-DCMAKE_IGNORE_PREFIX_PATH=$(gpu_tuned_cmake_ignore_pip_prefixes)" \
     -Unvtx3_DIR \
     faiss/python
-gpu_tuned_verify_no_pip_cmake_deps "${BUILD_DIR}/CMakeCache.txt" || exit 1
+# The Python bindings legitimately take NumPy's headers (_Python_NumPy_INCLUDE_DIR) from the
+# user's pip environment, so check the cache without FindPython's own entries: what must not come
+# from a wheel is the rapids chain (nvtx3, rmm, rapids_logger, cuvs ...).
+grep -vE '^_?Python[0-9]*_' "${BUILD_DIR}/CMakeCache.txt" > "${BUILD_DIR}/CMakeCache.rapids-deps.txt"
+gpu_tuned_verify_no_pip_cmake_deps "${BUILD_DIR}/CMakeCache.rapids-deps.txt" || exit 1
 
 echo "[3/4] Building SWIG bindings..."
 num_jobs=${FAISS_BUILD_JOBS:-$(nproc)}
