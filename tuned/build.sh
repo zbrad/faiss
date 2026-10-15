@@ -33,17 +33,25 @@ resolve_cuvs_release() {
     local variant="$1" cuda_tag="$2"
     CUVS_RELEASE_DIR="${FAISS_ROOT}/tuned/_cuvs_release/${variant}-${cuda_tag}"
 
-    if [[ -n "$(find "${CUVS_RELEASE_DIR}" -maxdepth 4 -iname 'cuvs-config.cmake' 2>/dev/null)" ]]; then
-        echo "cuVS release already extracted: ${CUVS_RELEASE_DIR} (set FORCE_CUVS_DOWNLOAD=1 to re-fetch)"
-        [[ "${FORCE_CUVS_DOWNLOAD:-0}" != "1" ]] && return 0
-    fi
-
     echo "Looking up zbrad/cuvs tuned-builds release for ${variant}-${cuda_tag}..."
     local tag
     # cuvs tags are v<ver>-<variant>-<cuda_tag>[-g<sha>] (the sha suffix was added
     # later); `gh release list` is newest-first, so head -1 is the newest match.
     tag="$(gh release list --repo zbrad/cuvs --json tagName -q '.[].tagName' 2>/dev/null \
         | grep -E -- "-${variant}-${cuda_tag}(-g[0-9a-f]+)?\$" | head -1)"
+
+    # An extracted directory is reused only if it came from that newest release. Reusing one
+    # blindly linked a build against a stale cuvs (stock library names, no nvtx3) once; the
+    # marker file records which release the directory holds.
+    if [[ -n "$(find "${CUVS_RELEASE_DIR}" -maxdepth 4 -iname 'cuvs-config.cmake' 2>/dev/null)" ]]; then
+        local have
+        have="$(cat "${CUVS_RELEASE_DIR}/.release_tag" 2>/dev/null || true)"
+        if [[ -n "${tag}" && "${have}" == "${tag}" && "${FORCE_CUVS_DOWNLOAD:-0}" != "1" ]]; then
+            echo "cuVS release already extracted: ${CUVS_RELEASE_DIR} (${have})"
+            return 0
+        fi
+        echo "Extracted cuVS release (${have:-unknown}) is not the newest (${tag:-lookup failed}); re-fetching."
+    fi
     if [[ -z "${tag}" ]]; then
         echo "ERROR: no zbrad/cuvs release found matching '*-${variant}-${cuda_tag}'." >&2
         echo "  Available releases:" >&2
@@ -69,6 +77,7 @@ resolve_cuvs_release() {
         echo "  Contents: $(find "${CUVS_RELEASE_DIR}" -maxdepth 2)" >&2
         exit 1
     fi
+    echo "${tag}" > "${CUVS_RELEASE_DIR}/.release_tag"
     echo "Extracted to: ${CUVS_RELEASE_DIR}"
 }
 
