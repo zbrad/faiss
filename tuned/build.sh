@@ -383,7 +383,7 @@ if [[ "$FAISS_ENABLE_CUVS" == "ON" ]]; then
 fi
 
 echo "[3/3] Building libraries..."
-num_jobs=${FAISS_BUILD_JOBS:-$(nproc)}
+num_jobs=${FAISS_BUILD_JOBS:-$(gpu_tuned_jobs)}
 echo "Using $num_jobs parallel jobs"
 # shellcheck disable=SC2086
 make -C "$BUILD_DIR" -j"$num_jobs" ${GPU_TUNED_MAKE_TARGETS}

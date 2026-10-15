@@ -110,7 +110,7 @@ grep -vE '^_?Python[0-9]*_' "${BUILD_DIR}/CMakeCache.txt" > "${BUILD_DIR}/CMakeC
 gpu_tuned_verify_no_pip_cmake_deps "${BUILD_DIR}/CMakeCache.rapids-deps.txt" || exit 1
 
 echo "[3/4] Building SWIG bindings..."
-num_jobs=${FAISS_BUILD_JOBS:-$(nproc)}
+num_jobs=${FAISS_BUILD_JOBS:-$(gpu_tuned_jobs)}
 echo "Using $num_jobs parallel jobs"
 # shellcheck disable=SC2086
 make -C "$BUILD_DIR" -j"$num_jobs" ${GPU_TUNED_SWIG_TARGETS}
