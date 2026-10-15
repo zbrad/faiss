@@ -328,8 +328,18 @@ command -v nvcc &>/dev/null || { echo "ERROR: nvcc not found. Please set CUDA_HO
 echo "CUDA compiler: $(nvcc --version | grep -E 'release|version')"
 
 echo "[2/3] Configuring with CMake..."
+# pip wheels (librmm, rmm, libucx, ...) install CMake packages into user site-packages, and
+# find_package searches there. Ignore those prefixes so rmm, rapids_logger and nvtx3 resolve
+# from the cuvs release package alone (the same fix as raft and cuvs, see tuned-common).
+gpu_tuned_warn_pip_cmake_packages
 rm -rf "$BUILD_DIR"
-cmake -B "$BUILD_DIR" "${CMAKE_ARGS[@]}" .
+cmake -B "$BUILD_DIR" "${CMAKE_ARGS[@]}" \
+    "-DCMAKE_IGNORE_PREFIX_PATH=$(gpu_tuned_cmake_ignore_pip_prefixes)" \
+    -Unvtx3_DIR \
+    .
+# Fail if any *_DIR in the cache points into a pip wheel (it would resolve at build time and
+# be missing from consumers' view of the package).
+gpu_tuned_verify_no_pip_cmake_deps "${BUILD_DIR}/CMakeCache.txt" || exit 1
 
 # Verify what CUB/Thrust/libcudacxx actually resolved to, not just what we
 # asked for -- the explicit pin above is best-effort (only applies when

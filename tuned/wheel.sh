@@ -97,7 +97,13 @@ if [[ "${FAISS_ENABLE_CUVS}" == "ON" ]]; then
         -DCMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH};${CUVS_RELEASE_DIR};${CUDA_HOME}/targets/${CUDA_TARGET_SUBDIR}"
     )
 fi
-cmake -B "$BUILD_DIR" "${CMAKE_ARGS[@]}" faiss/python
+# Same pip-wheel isolation as tuned/build.sh: user-site CMake packages must not be found.
+gpu_tuned_warn_pip_cmake_packages
+cmake -B "$BUILD_DIR" "${CMAKE_ARGS[@]}" \
+    "-DCMAKE_IGNORE_PREFIX_PATH=$(gpu_tuned_cmake_ignore_pip_prefixes)" \
+    -Unvtx3_DIR \
+    faiss/python
+gpu_tuned_verify_no_pip_cmake_deps "${BUILD_DIR}/CMakeCache.txt" || exit 1
 
 echo "[3/4] Building SWIG bindings..."
 num_jobs=${FAISS_BUILD_JOBS:-$(nproc)}
