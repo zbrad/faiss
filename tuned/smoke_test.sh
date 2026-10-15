@@ -70,7 +70,7 @@ run() {
 
     export LD_LIBRARY_PATH="${EXT}/lib:${CUVS_RELEASE_DIR}/lib:${TOOLKIT_LIB_DIR}"
     export PYTHONPATH="${TEST_ENV_DIR}" PYTHONDONTWRITEBYTECODE=1
-    maps="$("${PYTHON}" -I -c '
+    maps="$("${PYTHON}" -c '
 import faiss
 print("gpus", faiss.get_num_gpus())
 for line in open("/proc/self/maps"):
@@ -87,7 +87,7 @@ for line in open("/proc/self/maps"):
     local out rc
     out="$("${PYTHON}" -m pytest tests/test_wheel_smoke_gpu.py tests/test_index.py tests/test_clustering.py -p no:cacheprovider -q --tb=short 2>&1)"; rc=$?
     if [[ ${rc} -eq 0 ]]; then
-        ok "pytest (test_wheel_smoke_gpu, test_index, test_clustering): $(tail -1 <<< "${out}")"
+        ok "pytest (test_wheel_smoke_gpu, test_index, test_clustering): $(grep -E '[0-9]+ passed' <<< "${out}" | tail -1)"
     else
         fail "pytest exit ${rc}"; tail -20 <<< "${out}" | sed 's/^/        /'
     fi
