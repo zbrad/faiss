@@ -19,8 +19,9 @@
 # ~/.claude/design/gpu-tuned-build-graph.md).
 #
 # Usage:
-#   bash tuned/build.sh gb10      # first, produces _libfaiss_stage_gb10/
-#   bash tuned/package.sh gb10    # then, packages + publishes it
+#   bash tuned/build.sh gb10 && bash tuned/wheel.sh gb10 && bash tuned/full_test.sh gb10
+#   bash tuned/package.sh gb10    # packages only
+#   bash tuned/release.sh gb10    # publishes, after the gates
 set -euo pipefail
 
 REPODIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -62,26 +63,39 @@ gpu_tuned_verify_arch "${INSTALLED_LIB}" "${GPU_TUNED_CUDA_ARCH}" || exit 1
 gpu_tuned_verify_cuda_compat "${INSTALLED_LIB}" "${FAISS_CUDA_VER}" || exit 1
 embed_build_info "${INSTALLED_LIB}" "${GPU_TUNED_VARIANT}" "faiss" "${FAISS_VERSION}+${FAISS_CUDA_TAG}" "${GPU_TUNED_HW_LABEL}"
 
+SHORT_SHA="$(git -C "${REPODIR}" rev-parse --short HEAD)"
+
+# Library-name gates (the faiss equivalent of the consumer-configure gate raft and cuvs run: faiss
+# ships no CMake package, so there is nothing to configure against). Every faiss shared object
+# must name only the unique -tuned rapids libraries, never a stock RAPIDS name, and the cuvs
+# release it was linked against must itself ship nvtx3 (the packaging fix that release carries).
+CUVS_RELEASE_DIR="${REPODIR}/tuned/_cuvs_release/${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"
+STOCK_RE='^(librmm|librapids_logger|libkvikio|libcuvs_c)\.so(\.[0-9.]+)?$'
+command -v readelf >/dev/null || { echo "ERROR: readelf not found; cannot check DT_NEEDED." >&2; exit 1; }
+for so in "${STAGE_DIR}"/lib/libfaiss*.so; do
+    [[ -f "${so}" ]] || { echo "ERROR: no libfaiss*.so under ${STAGE_DIR}/lib." >&2; exit 1; }
+    STOCK_NEEDED="$(readelf -d "${so}" | sed -n 's/.*Shared library: \[\(.*\)\]/\1/p' | grep -E "${STOCK_RE}" || true)"
+    if [[ -n "${STOCK_NEEDED}" ]]; then
+        echo "ERROR: ${so} lists stock RAPIDS libraries as NEEDED: ${STOCK_NEEDED}" >&2
+        exit 1
+    fi
+done
+if [[ ! -f "${CUVS_RELEASE_DIR}/lib/cmake/nvtx3/nvtx3-config.cmake" || ! -f "${CUVS_RELEASE_DIR}/include/nvtx3/nvtx3.hpp" ]]; then
+    echo "ERROR: nvtx3 is missing from ${CUVS_RELEASE_DIR}; that cuvs release predates the nvtx3 fix." >&2
+    exit 1
+fi
+
 DIST_DIR="$(gpu_tuned_cuda_subdir "${REPODIR}/dist" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
-rm -rf "${DIST_DIR}"
 mkdir -p "${DIST_DIR}"
-PKG_NAME="faiss-${SHORT_VER}-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"
+PKG_NAME="faiss-${SHORT_VER}-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}-g${SHORT_SHA}"
 TARBALL="${DIST_DIR}/${PKG_NAME}.tar.gz"
 
 echo ""
 echo "Packaging ${STAGE_DIR} -> ${TARBALL}..."
 tar -C "${STAGE_DIR}" -czf "${TARBALL}" .
 echo "Tarball: $(basename "${TARBALL}") ($(du -sh "${TARBALL}" | awk '{print $1}'))"
-
-RELEASE_TAG="v${SHORT_VER}-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"
-RELEASE_TITLE="faiss ${SHORT_VER} — ${GPU_TUNED_HW_LABEL} (${FAISS_CUDA_TAG})"
+echo "SHA256:  $(sha256sum "${TARBALL}" | awk '{print $1}')"
 
 echo ""
-echo "Publishing to GitHub release ${RELEASE_TAG}..."
-gpu_tuned_publish_release "zbrad/faiss" "${RELEASE_TAG}" "${RELEASE_TITLE}" \
-    "lib${FAISS_LIB_NAME}.so ${FAISS_VERSION} install tree (lib/, include/) for ${GPU_TUNED_HW_LABEL}, single-arch (sm_${GPU_TUNED_CUDA_ARCH}). Links cuvs::cuvs against zbrad/cuvs's published tuned-builds release (see tuned/build.sh's resolve_cuvs_release)." \
-    "${TARBALL}#$(basename "${TARBALL}")"
-
-echo ""
-echo "Release: https://github.com/zbrad/faiss/releases/tag/${RELEASE_TAG}"
-echo "Done."
+echo "Packaged (not published): ${TARBALL}"
+echo "Publish with: bash tuned/release.sh ${GPU_TUNED_VARIANT}"
