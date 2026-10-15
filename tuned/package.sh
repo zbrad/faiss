@@ -7,7 +7,7 @@
 # tuned/package.sh <variant> — package an already-built (tuned/build.sh
 # <variant>) libfaiss install tree into a tarball and publish it as a real
 # GitHub release, matching zbrad/cuvs's and zbrad/raft's tuned/package.sh
-# conventions (SHORT_VER, v<short_ver>-<variant>-<cuda_tag> tag, build-info
+# conventions (date-label tag v0.<date>.<seq>-<variant>-<cuda_tag>, build-info
 # stamping, --target tuned-builds). Nothing in this repo set consumes a
 # published faiss release yet -- this exists so faiss's tarball is
 # reachable the same way raft's/cuvs's already are, if/when a downstream
@@ -20,7 +20,8 @@
 #
 # Usage:
 #   bash tuned/build.sh gb10 && bash tuned/wheel.sh gb10 && bash tuned/full_test.sh gb10
-#   bash tuned/package.sh gb10    # packages only
+#   bash tuned/package.sh gb10    # packages only, writes package-info.txt
+#   bash tuned/smoke_test.sh gb10 # checks the tarball as extracted
 #   bash tuned/release.sh gb10    # publishes, after the gates
 set -euo pipefail
 
@@ -65,6 +66,31 @@ embed_build_info "${INSTALLED_LIB}" "${GPU_TUNED_VARIANT}" "faiss" "${FAISS_VERS
 
 SHORT_SHA="$(git -C "${REPODIR}" rev-parse --short HEAD)"
 
+# Release identity: the UTC date label (docs/ARCHITECTURE.md E2-E4 in tuned-common), not the upstream version or a
+# sha. HEAD's UTC commit date plus the lowest unused sequence for that date among the repo's tags
+# (gpu_tuned_allocate_date_label; GPU_TUNED_LABEL_SEQ=<n> chooses it offline). Allocated once, here, recorded in
+# package-info.txt; release.sh reads it from there and never recomputes it. The upstream version (SHORT_VER) is
+# information for the title and notes. Releases published before 2026-10-15 are v<short_ver>-<variant>-<cuda>[-g<sha>]
+# and are not renamed.
+LABEL="$(gpu_tuned_allocate_date_label "${REPODIR}")" || exit 1
+RELEASE_TAG="$(gpu_tuned_native_tag "${GPU_TUNED_VARIANT}" "${FAISS_CUDA_TAG}" "${LABEL}")" || exit 1
+
+# The staged tree is packaged as is, so it must come from the source at HEAD. The build does not stamp its commit,
+# so the reference is the commit the test log was run at (tuned/full_test.sh writes it, and release.sh requires that
+# log to be newer than the build): source outside tuned/ may differ between that commit and HEAD in nothing.
+TEST_LOG="$(gpu_tuned_cuda_subdir "${REPODIR}/build_output" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")/TEST_RESULTS_${GPU_TUNED_VARIANT}.log"
+[[ -f "${TEST_LOG}" ]] || { echo "ERROR: ${TEST_LOG} not found; run tuned/full_test.sh ${GPU_TUNED_VARIANT} for ${FAISS_CUDA_TAG} before packaging." >&2; exit 1; }
+TESTED_COMMIT="$(sed -n 's/^commit: *//p' "${TEST_LOG}" | head -1)"
+git -C "${REPODIR}" cat-file -e "${TESTED_COMMIT}^{commit}" 2>/dev/null || { echo "ERROR: ${TEST_LOG} names commit '${TESTED_COMMIT}', which is not in this checkout." >&2; exit 1; }
+STALE_SRC="$(git -C "${REPODIR}" diff --name-only "${TESTED_COMMIT}" HEAD -- . ':!tuned' | head -5)"
+if [[ -n "${STALE_SRC}" ]]; then
+    echo "ERROR: the tests ran at ${TESTED_COMMIT}, but source outside tuned/ changed since:" >&2
+    echo "${STALE_SRC}" | sed 's/^/    /' >&2
+    echo "  Rebuild and re-test before packaging." >&2
+    exit 1
+fi
+echo "  tested at    : ${TESTED_COMMIT}; no source outside tuned/ changed since, packaging at ${SHORT_SHA}"
+
 # Library-name gates (the faiss equivalent of the consumer-configure gate raft and cuvs run: faiss
 # ships no CMake package, so there is nothing to configure against). Every faiss shared object
 # must name only the unique -tuned rapids libraries, never a stock RAPIDS name, and the cuvs
@@ -87,7 +113,8 @@ fi
 
 DIST_DIR="$(gpu_tuned_cuda_subdir "${REPODIR}/dist" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
 mkdir -p "${DIST_DIR}"
-PKG_NAME="faiss-${SHORT_VER}-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}-g${SHORT_SHA}"
+rm -f "${DIST_DIR}/package-info.txt"
+PKG_NAME="faiss-${RELEASE_TAG#v}"
 TARBALL="${DIST_DIR}/${PKG_NAME}.tar.gz"
 
 echo ""
@@ -96,6 +123,18 @@ tar -C "${STAGE_DIR}" -czf "${TARBALL}" .
 echo "Tarball: $(basename "${TARBALL}") ($(du -sh "${TARBALL}" | awk '{print $1}'))"
 echo "SHA256:  $(sha256sum "${TARBALL}" | awk '{print $1}')"
 
+# Written last: its presence means the package passed every gate above. release.sh requires it.
+cat > "${DIST_DIR}/package-info.txt" <<INFO
+release_tag=${RELEASE_TAG}
+tarball=$(basename "${TARBALL}")
+upstream_version=${FAISS_VERSION}
+commit=${SHORT_SHA}
+tested_commit=${TESTED_COMMIT}
+cuda_tag=${FAISS_CUDA_TAG}
+variant=${GPU_TUNED_VARIANT}
+sha256=$(sha256sum "${TARBALL}" | awk '{print $1}')
+INFO
+
 echo ""
-echo "Packaged (not published): ${TARBALL}"
-echo "Publish with: bash tuned/release.sh ${GPU_TUNED_VARIANT}"
+echo "Packaged (not published): ${TARBALL} (${RELEASE_TAG})"
+echo "Next: bash tuned/smoke_test.sh ${GPU_TUNED_VARIANT}, then bash tuned/release.sh ${GPU_TUNED_VARIANT}"

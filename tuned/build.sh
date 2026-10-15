@@ -35,10 +35,10 @@ resolve_cuvs_release() {
 
     echo "Looking up zbrad/cuvs tuned-builds release for ${variant}-${cuda_tag}..."
     local tag
-    # cuvs tags are v<ver>-<variant>-<cuda_tag>[-g<sha>] (the sha suffix was added
-    # later); `gh release list` is newest-first, so head -1 is the newest match.
-    tag="$(gh release list --repo zbrad/cuvs --json tagName -q '.[].tagName' 2>/dev/null \
-        | grep -E -- "-${variant}-${cuda_tag}(-g[0-9a-f]+)?\$" | head -1)"
+    # Newest by date label, ranked as numbers (gpu_tuned_newest_release_tag); an older-form
+    # v<ver>-<variant>-<cuda_tag>-g<sha> tag is only a loud fallback while no date-label release exists.
+    tag="$(gh release list --repo zbrad/cuvs --limit 100 --json tagName -q '.[].tagName' 2>/dev/null \
+        | gpu_tuned_newest_release_tag "${variant}" "${cuda_tag}")" || true
 
     # An extracted directory is reused only if it came from that newest release. Reusing one
     # blindly linked a build against a stale cuvs (stock library names, no nvtx3) once; the
