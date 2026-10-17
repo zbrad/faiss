@@ -65,21 +65,10 @@ source "${GPU_TUNED_SELF_DIR}/common.sh" || return 1 2>/dev/null || exit 1
 # this repo previously had no equivalent at all.
 gpu_tuned_assert_platform "${GPU_TUNED_PLATFORM}" "${GPU_TUNED_VARIANT}" || return 1 2>/dev/null || exit 1
 
-# --- CUDA toolkit: chosen from tuned/common-data/toolkits, never inferred. FAISS_CUDA_TAG (cu133) or
-#     FAISS_CUDA_VER (13.3) select one (CUDA_TAG / CUDA_VER likewise); neither set is an error listing
-#     the defined ones (no default). Exports CUDA_VER, CUDA_TAG, CUDA_HOME and puts $CUDA_HOME/bin on PATH. ---
-_faiss_tk="${FAISS_CUDA_TAG:-${CUDA_TAG:-}}"
-_faiss_req_ver="${FAISS_CUDA_VER:-${CUDA_VER:-}}"
-if [ -z "${_faiss_tk}" ] && [ -n "${_faiss_req_ver}" ]; then
-    _faiss_tk="cu${_faiss_req_ver//./}"                         # 13.3 -> cu133
-fi
-gpu_tuned_load_toolkit "${GPU_TUNED_DATA_DIR}" "${GPU_TUNED_VARIANT}" "${_faiss_tk}" || return 1 2>/dev/null || exit 1
-if [ -n "${_faiss_req_ver}" ] && [ "${_faiss_req_ver}" != "${TOOLKIT_CUDA_VER}" ]; then
-    echo "[tuned/env] ERROR: CUDA version ${_faiss_req_ver} conflicts with toolkit ${CUDA_TAG} (CUDA ${TOOLKIT_CUDA_VER})." >&2
-    return 1 2>/dev/null || exit 1
-fi
-unset _faiss_tk _faiss_req_ver
-gpu_tuned_verify_toolkit || return 1 2>/dev/null || exit 1
+# --- CUDA toolkit: named by FAISS_CUDA_TAG (cu133) or FAISS_CUDA_VER (13.3), CUDA_TAG / CUDA_VER likewise, never
+#     defaulted or guessed; loaded from tuned/common-data/toolkits and verified (docs/ARCHITECTURE.md B4). Exports
+#     CUDA_VER, CUDA_TAG, CUDA_HOME and puts $CUDA_HOME/bin on PATH. ---
+GPU_TUNED_TOOLKIT_ENV_PREFIX=FAISS_ gpu_tuned_select_toolkit "${GPU_TUNED_DATA_DIR}" "${GPU_TUNED_VARIANT}" || return 1 2>/dev/null || exit 1
 # faiss's own names for the toolkit, used throughout tuned/.
 export FAISS_CUDA_VER="${CUDA_VER}" FAISS_CUDA_TAG="${CUDA_TAG}"
 

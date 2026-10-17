@@ -114,19 +114,12 @@ fi
 # done here, after the label is allocated and the gates above passed, so the stamp names the tag this package is for.
 _cuvs_dep=()
 [[ -f "${CUVS_RELEASE_DIR}/.release_tag" ]] && _cuvs_dep=("deps.cuvs.release=$(cat "${CUVS_RELEASE_DIR}/.release_tag")")
-_nvcc_full="$("${CUDA_HOME}/bin/nvcc" --version | sed -n 's/.*release [0-9.]*, V\([0-9.]*\).*/\1/p' | head -1)"
 # Both shipped libraries carry it; the build-time free-text stamp (.faiss_build_info) is dropped from the staged copies.
 for _lib in "${INSTALLED_LIB}" "${STAGE_DIR}/lib/libfaiss_c-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}.so"; do
     [[ -f "${_lib}" ]] || { echo "ERROR: ${_lib} not found in the staged tree." >&2; exit 1; }
-    objcopy --remove-section .faiss_build_info "${_lib}" || exit 1
-    gpu_tuned_embed_build_info_json "${_lib}" \
-        package=faiss "component=$(basename "${_lib}")" "release=${RELEASE_TAG}" "variant=${GPU_TUNED_VARIANT}" \
-        "hardware=${GPU_TUNED_HW_LABEL}" "arch=sm_${GPU_TUNED_CUDA_ARCH}" \
-        "cuda.tag=${FAISS_CUDA_TAG}" "cuda.version=${FAISS_CUDA_VER}" "cuda.nvcc=${_nvcc_full:-unknown}" \
-        "${_cuvs_dep[@]}" || exit 1
-    gpu_tuned_verify_build_info_json "${_lib}" "release=${RELEASE_TAG}" "variant=${GPU_TUNED_VARIANT}" "cuda.tag=${FAISS_CUDA_TAG}" || exit 1
+    gpu_tuned_stamp_lib_json "${_lib}" faiss "${RELEASE_TAG}" .faiss_build_info ${_cuvs_dep[@]+"${_cuvs_dep[@]}"} || exit 1
 done
-unset _cuvs_dep _nvcc_full _lib
+unset _cuvs_dep _lib
 
 DIST_DIR="$(gpu_tuned_cuda_subdir "${REPODIR}/dist" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
 mkdir -p "${DIST_DIR}"
@@ -139,11 +132,8 @@ echo "Packaging ${STAGE_DIR} -> ${TARBALL}..."
 tar -C "${STAGE_DIR}" -czf "${TARBALL}" .
 echo "Tarball: $(basename "${TARBALL}") ($(du -sh "${TARBALL}" | awk '{print $1}'))"
 
-# sha256sum-format sidecar (digest + file name), attached to the release so a consumer can verify the download.
-SHA_FILE="${TARBALL}.sha256"
-(cd "${DIST_DIR}" && sha256sum "$(basename "${TARBALL}")" > "$(basename "${SHA_FILE}")")
-(cd "${DIST_DIR}" && sha256sum -c --quiet "$(basename "${SHA_FILE}")") || { echo "ERROR: the sha256 sidecar does not match the tarball" >&2; exit 1; }
-echo "Checksum: $(basename "${SHA_FILE}")"
+# sha256sum-format sidecar, attached to the release so a consumer can verify the download.
+gpu_tuned_write_sha256_sidecar "${TARBALL}" || exit 1
 echo "SHA256:  $(sha256sum "${TARBALL}" | awk '{print $1}')"
 
 # Written last: its presence means the package passed every gate above. release.sh requires it.
