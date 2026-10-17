@@ -76,6 +76,14 @@ if [[ ! -f "${TARBALL}" ]]; then
 else
     got="$(sha256sum "${TARBALL}" | awk '{print $1}')"
     [[ "${got}" == "$(info sha256)" ]] && ok "tarball sha256 matches package-info.txt" || fail "tarball sha256 does not match package-info.txt"
+    SHA_FILE="${TARBALL}.sha256"
+    if [[ ! -f "${SHA_FILE}" ]]; then
+        fail "${SHA_FILE} not found -- package again (package.sh writes the sha256 sidecar)"
+    elif (cd "$(dirname "${TARBALL}")" && sha256sum -c --quiet "$(basename "${SHA_FILE}")") >/dev/null 2>&1; then
+        ok "sha256 sidecar matches the tarball"
+    else
+        fail "sha256 sidecar does not match the tarball"
+    fi
     if [[ -f "${TEST_RESULTS_FILE}" && "${TEST_RESULTS_FILE}" -nt "${TARBALL}" ]]; then
         fail "the test log is newer than the tarball; package again after testing"
     else
@@ -125,6 +133,7 @@ echo "Publishing to GitHub release ${RELEASE_TAG}..."
 gpu_tuned_publish_release "zbrad/faiss" "${RELEASE_TAG}" "${RELEASE_TITLE}" \
     "@${RELEASE_NOTES_FILE}" \
     "${TARBALL}#$(basename "${TARBALL}")" \
+    "${SHA_FILE}#SHA-256 checksum" \
     "${TEST_RESULTS_FILE}#Full test suite results (${GPU_TUNED_VARIANT})" \
     "${SMOKE_FILE}#Package smoke test results (${GPU_TUNED_VARIANT})"
 
