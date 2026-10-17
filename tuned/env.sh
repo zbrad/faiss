@@ -11,17 +11,23 @@
 # Consolidates what used to be gpu-cu/scripts/cuda_env.sh (FAISS_CUDA_VER/
 # FAISS_CUDA_TAG/CUDA_HOME detection, identical logic, just relocated) plus
 # the device-specific values that used to be hardcoded separately across
-# build_lib_*.sh/build_pkg_*.sh/package_wheel_*.sh/wsl/env_rtx*.sh -- now in
-# tuned/devices/<variant>.conf, one file per variant.
+# build_lib_*.sh/build_pkg_*.sh/package_wheel_*.sh/wsl/env_rtx*.sh -- now the
+# shared device files in tuned/common-data/devices/<variant>.conf
+# (zbrad/tuned-common) plus faiss's own per-variant build settings in
+# tuned/repo.env.
 #
-# Specify the CUDA version at build time with EITHER variable (unchanged):
+# The toolkit comes from the vendored definitions in tuned/common-data/toolkits/<id>.env,
+# never from /usr/local/cuda or from what is installed. There is no default: name it with
+# EITHER variable (the other is derived; CUDA_VER / CUDA_TAG are accepted too):
 #   FAISS_CUDA_VER=13.3  bash tuned/build.sh gb10
 #   FAISS_CUDA_TAG=cu133 bash tuned/build.sh gb10
+# With neither set the loader fails and lists the defined toolkits (at a terminal it asks
+# which to use, for that run only).
 #
 # Exported: FAISS_CUDA_VER/FAISS_CUDA_TAG/CUDA_HOME (this repo's own
-# naming, unchanged), GPU_TUNED_VARIANT/PLATFORM/CUDA_ARCH/HW_LABEL/BLAS/
-# OPENBLAS_LIB/MKL_ROOT/OPT_LEVEL/SWIG_TARGETS/MAKE_TARGETS (from
-# tuned/devices/<variant>.conf).
+# naming, unchanged; CUDA_VER/CUDA_TAG too), GPU_TUNED_VARIANT/PLATFORM/CUDA_ARCH/HW_LABEL
+# (shared device file), GPU_TUNED_BLAS/OPENBLAS_LIB/MKL_ROOT/OPT_LEVEL/SWIG_TARGETS/
+# MAKE_TARGETS (from tuned/repo.env).
 #
 # Also defines gpu_tuned_verify_arch(), gpu_tuned_verify_cuda_compat(), and
 # embed_build_info() -- NEW, this repo previously had none of these
@@ -36,11 +42,10 @@ if [[ -z "${GPU_TUNED_ARG_VARIANT}" ]]; then
 fi
 
 GPU_TUNED_SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=devices/rtx50.conf
-source "${GPU_TUNED_SELF_DIR}/devices/${GPU_TUNED_ARG_VARIANT}.conf" || return 1 2>/dev/null || exit 1
-export GPU_TUNED_VARIANT GPU_TUNED_PLATFORM GPU_TUNED_CUDA_ARCH GPU_TUNED_HW_LABEL GPU_TUNED_BLAS \
-    GPU_TUNED_OPENBLAS_LIB GPU_TUNED_MKL_ROOT GPU_TUNED_OPT_LEVEL \
-    GPU_TUNED_SWIG_TARGETS GPU_TUNED_MAKE_TARGETS
+GPU_TUNED_DATA_DIR="${GPU_TUNED_SELF_DIR}/common-data"
+# shellcheck source=common-data/devices/gb10.conf
+source "${GPU_TUNED_DATA_DIR}/devices/${GPU_TUNED_ARG_VARIANT}.conf" || return 1 2>/dev/null || exit 1
+export GPU_TUNED_VARIANT GPU_TUNED_PLATFORM GPU_TUNED_CUDA_ARCH GPU_TUNED_HW_LABEL
 
 # shellcheck source=common.sh
 # Vendored from https://github.com/zbrad/tuned-common (pinned commit --
@@ -60,52 +65,29 @@ source "${GPU_TUNED_SELF_DIR}/common.sh" || return 1 2>/dev/null || exit 1
 # this repo previously had no equivalent at all.
 gpu_tuned_assert_platform "${GPU_TUNED_PLATFORM}" "${GPU_TUNED_VARIANT}" || return 1 2>/dev/null || exit 1
 
-# --- Resolve FAISS_CUDA_VER / FAISS_CUDA_TAG (specify either, derive the other) ---
-if [ -n "${FAISS_CUDA_VER:-}" ]; then
-    : "${FAISS_CUDA_TAG:=cu${FAISS_CUDA_VER//./}}"
-elif [ -n "${FAISS_CUDA_TAG:-}" ]; then
-    _faiss_cuda_digits="${FAISS_CUDA_TAG#cu}"
-    : "${FAISS_CUDA_VER:=${_faiss_cuda_digits%?}.${_faiss_cuda_digits: -1}}"
-    unset _faiss_cuda_digits
+# --- CUDA toolkit: chosen from tuned/common-data/toolkits, never inferred. FAISS_CUDA_TAG (cu133) or
+#     FAISS_CUDA_VER (13.3) select one (CUDA_TAG / CUDA_VER likewise); neither set is an error listing
+#     the defined ones (no default). Exports CUDA_VER, CUDA_TAG, CUDA_HOME and puts $CUDA_HOME/bin on PATH. ---
+_faiss_tk="${FAISS_CUDA_TAG:-${CUDA_TAG:-}}"
+_faiss_req_ver="${FAISS_CUDA_VER:-${CUDA_VER:-}}"
+if [ -z "${_faiss_tk}" ] && [ -n "${_faiss_req_ver}" ]; then
+    _faiss_tk="cu${_faiss_req_ver//./}"                         # 13.3 -> cu133
 fi
-if [ -z "${FAISS_CUDA_VER:-}" ]; then
-    _faiss_latest="$(gpu_tuned_installed_cuda_toolkits | tail -1)"
-    FAISS_CUDA_VER="${_faiss_latest:-13.2}"  # last-resort fallback if nothing is installed yet
-    unset _faiss_latest
+gpu_tuned_load_toolkit "${GPU_TUNED_DATA_DIR}" "${GPU_TUNED_VARIANT}" "${_faiss_tk}" || return 1 2>/dev/null || exit 1
+if [ -n "${_faiss_req_ver}" ] && [ "${_faiss_req_ver}" != "${TOOLKIT_CUDA_VER}" ]; then
+    echo "[tuned/env] ERROR: CUDA version ${_faiss_req_ver} conflicts with toolkit ${CUDA_TAG} (CUDA ${TOOLKIT_CUDA_VER})." >&2
+    return 1 2>/dev/null || exit 1
 fi
-export FAISS_CUDA_VER
-export FAISS_CUDA_TAG="${FAISS_CUDA_TAG:-cu${FAISS_CUDA_VER//./}}"
+unset _faiss_tk _faiss_req_ver
+gpu_tuned_verify_toolkit || return 1 2>/dev/null || exit 1
+# faiss's own names for the toolkit, used throughout tuned/.
+export FAISS_CUDA_VER="${CUDA_VER}" FAISS_CUDA_TAG="${CUDA_TAG}"
 
-# --- Resolve CUDA_HOME to the matching toolkit when not explicitly set ---
-if [ -z "${CUDA_HOME:-}" ]; then
-    if [ -d "/usr/local/cuda-${FAISS_CUDA_VER}" ]; then
-        export CUDA_HOME="/usr/local/cuda-${FAISS_CUDA_VER}"
-    else
-        echo "[tuned/env] WARNING: /usr/local/cuda-${FAISS_CUDA_VER} not found; falling back to /usr/local/cuda (whatever version that symlinks to)." >&2
-        _faiss_installed="$(gpu_tuned_installed_cuda_toolkits | tr '\n' ' ')"
-        if [ -n "$_faiss_installed" ]; then
-            echo "[tuned/env]          Installed toolkits: ${_faiss_installed}. Set FAISS_CUDA_VER to one of these, or CUDA_HOME to an explicit path." >&2
-        else
-            echo "[tuned/env]          No /usr/local/cuda-<ver> toolkits found at all." >&2
-        fi
-        unset _faiss_installed
-        export CUDA_HOME="/usr/local/cuda"
-    fi
-fi
-export PATH="$CUDA_HOME/bin:$PATH"
-
-# --- Sanity: warn if the resolved nvcc does not match the requested version ---
-if command -v nvcc >/dev/null 2>&1; then
-    _faiss_nvcc_ver="$(nvcc --version 2>/dev/null | grep -oE 'release [0-9]+\.[0-9]+' | awk '{print $2}')"
-    if [ -n "$_faiss_nvcc_ver" ] && [ "$_faiss_nvcc_ver" != "$FAISS_CUDA_VER" ]; then
-        echo "[tuned/env] WARNING: nvcc reports CUDA $_faiss_nvcc_ver but FAISS_CUDA_VER=$FAISS_CUDA_VER" >&2
-        echo "[tuned/env]          (CUDA_HOME=$CUDA_HOME). Set CUDA_HOME or FAISS_CUDA_VER to match." >&2
-        _faiss_installed="$(gpu_tuned_installed_cuda_toolkits | tr '\n' ' ')"
-        [ -n "$_faiss_installed" ] && echo "[tuned/env]          Installed toolkits: ${_faiss_installed}" >&2
-        unset _faiss_installed
-    fi
-    unset _faiss_nvcc_ver
-fi
+# --- Repo-specific settings (BLAS, SIMD level, SWIG and make targets), loaded last; may not change
+#     any shared device/toolkit key. ---
+gpu_tuned_load_repo_env "${GPU_TUNED_SELF_DIR}/repo.env" || return 1 2>/dev/null || exit 1
+export GPU_TUNED_BLAS GPU_TUNED_OPENBLAS_LIB GPU_TUNED_MKL_ROOT GPU_TUNED_OPT_LEVEL \
+    GPU_TUNED_SWIG_TARGETS GPU_TUNED_MAKE_TARGETS
 
 # embed_build_info now comes from common.sh (gpu_tuned_embed_build_info) --
 # every call site in this repo already passes package="faiss", so the

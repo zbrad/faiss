@@ -9,9 +9,9 @@
 #
 # Consolidates what used to be three separate scripts (build_lib_gb10.sh,
 # build_lib_rtx40.sh, build_lib_rtx50.sh), parameterized by
-# tuned/devices/<variant>.conf. gb10 remains structurally different from
+# tuned/common-data/devices/<variant>.conf (shared) and tuned/repo.env. gb10 remains structurally different from
 # rtx40/rtx50 in BLAS choice only (OpenBLAS vs MKL, no AVX2/AVX512 -- see
-# GPU_TUNED_BLAS in tuned/devices/<variant>.conf) -- handled below as an
+# GPU_TUNED_BLAS in tuned/common-data/devices/<variant>.conf (shared) and tuned/repo.env) -- handled below as an
 # explicit branch. cuVS wiring itself is now uniform across all three (see
 # resolve_cuvs_release below) -- it used to be gb10-only, wired to a local
 # sibling zbrad/cuvs checkout's build dir; now all three variants download

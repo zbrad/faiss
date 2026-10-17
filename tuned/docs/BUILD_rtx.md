@@ -98,7 +98,7 @@ export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 ```
 
-`CUDA_ARCHS` is fixed per `tuned/devices/<variant>.conf` now (`89` for rtx40,
+`CUDA_ARCHS` is fixed per `tuned/common-data/devices/<variant>.conf` now (`89` for rtx40,
 `120a` for rtx50 — the "a" suffix targets Blackwell's family-specific SASS
 variant) rather than an overridable multi-arch list — pick the variant
 matching your GPU generation instead of setting `CUDA_ARCHS`.

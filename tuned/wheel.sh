@@ -12,7 +12,7 @@
 # Consolidates what used to be six separate scripts (build_pkg_gb10.sh,
 # build_pkg_rtx40.sh, build_pkg_rtx50.sh, package_wheel_gb10.sh,
 # package_wheel_rtx40.sh, package_wheel_rtx50.sh) into one, parameterized by
-# tuned/devices/<variant>.conf.
+# tuned/common-data/devices/<variant>.conf (shared) and tuned/repo.env.
 set -e
 
 GPU_TUNED_ARG_VARIANT="$1"
