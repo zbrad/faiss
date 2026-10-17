@@ -79,11 +79,11 @@ if [ -n "${FOREIGN}" ]; then
 fi
 
 # Library-name gates, the same ones raft and cuvs apply when packaging: the rapids chain
-# must be the unique "-tuned" names, and no stock RAPIDS name may be mapped or listed as
-# NEEDED by our own libraries.
+# must be the unique names (librmm-<toolkit>.so ...; docs/ARCHITECTURE.md F1), and no stock RAPIDS name may be
+# mapped or listed as NEEDED by our own libraries.
 MAPPED_NAMES="$(echo "${LOADED}" | grep '^map ' | sed 's|^map .*/||' | sort -u)"
-for need in librmm-tuned.so librapids_logger-tuned.so libkvikio-tuned.so; do
-    echo "${MAPPED_NAMES}" | grep -qx "${need}" || { echo "ERROR: ${need} was not loaded; the -tuned rapids chain is not in use." >&2; echo "${MAPPED_NAMES}" >&2; exit 1; }
+for need in "librmm-${FAISS_CUDA_TAG}.so" "librapids_logger-${FAISS_CUDA_TAG}.so" "libkvikio-${FAISS_CUDA_TAG}.so"; do
+    echo "${MAPPED_NAMES}" | grep -qx "${need}" || { echo "ERROR: ${need} was not loaded; the tuned rapids chain is not in use." >&2; echo "${MAPPED_NAMES}" >&2; exit 1; }
 done
 STOCK_RE='^(librmm|librapids_logger|libkvikio|libcuvs_c)\.so(\.[0-9.]+)?$'
 STOCK_MAPPED="$(echo "${MAPPED_NAMES}" | grep -E "${STOCK_RE}" || true)"
@@ -104,7 +104,7 @@ done
     echo "commit:  $(git -C "${FAISS_ROOT}" rev-parse --short HEAD 2>/dev/null || echo unknown)"
     echo "wheel:   $(basename "${WHEEL}")"
     echo "${LOADED}"
-    echo "gates: -tuned rapids chain mapped, no stock RAPIDS names mapped or NEEDED, nvtx3 in cuvs release"
+    echo "gates: tuned rapids chain mapped, no stock RAPIDS names mapped or NEEDED, nvtx3 in cuvs release"
     echo "excluded: tests/external_module_test.py (needs the separately built faiss_example_external_module)"
     echo ""
 } > "${RESULTS_FILE}"

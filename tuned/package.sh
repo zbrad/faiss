@@ -92,7 +92,7 @@ echo "  tested at    : ${TESTED_COMMIT}; no source outside tuned/ changed since,
 
 # Library-name gates (the faiss equivalent of the consumer-configure gate raft and cuvs run: faiss
 # ships no CMake package, so there is nothing to configure against). Every faiss shared object
-# must name only the unique -tuned rapids libraries, never a stock RAPIDS name, and the cuvs
+# must name only the unique tuned rapids libraries, never a stock RAPIDS name, and the cuvs
 # release it was linked against must itself ship nvtx3 (the packaging fix that release carries).
 CUVS_RELEASE_DIR="${REPODIR}/tuned/_cuvs_release/${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"
 STOCK_RE='^(librmm|librapids_logger|libkvikio|libcuvs_c)\.so(\.[0-9.]+)?$'
@@ -105,6 +105,8 @@ for so in "${STAGE_DIR}"/lib/libfaiss*.so; do
         exit 1
     fi
 done
+# F1: libfaiss has device code and libfaiss_c needs it, so both carry -<variant>-<toolkit> (the variant is transitive).
+gpu_tuned_verify_so_axes "${STAGE_DIR}/lib" "${GPU_TUNED_VARIANT}" "${FAISS_CUDA_TAG}" - || exit 1
 if [[ ! -f "${CUVS_RELEASE_DIR}/lib/cmake/nvtx3/nvtx3-config.cmake" || ! -f "${CUVS_RELEASE_DIR}/include/nvtx3/nvtx3.hpp" ]]; then
     echo "ERROR: nvtx3 is missing from ${CUVS_RELEASE_DIR}; that cuvs release predates the nvtx3 fix." >&2
     exit 1
