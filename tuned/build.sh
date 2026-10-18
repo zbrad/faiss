@@ -33,8 +33,19 @@ resolve_cuvs_release() {
     local variant="$1" cuda_tag="$2"
     CUVS_RELEASE_DIR="${FAISS_ROOT}/tuned/_cuvs_release/${variant}-${cuda_tag}"
 
+    local tag tarball dl_dir=""
+    if [[ -n "${CUVS_RELEASE_TARBALL:-}" ]]; then
+        # A cuvs package built locally by cuvs's tuned/package.sh before it is published
+        # (cuvs/tuned/build/<cuda>/dist/libcuvs-0.<date>.<seq>-<variant>-<cuda>.tar.gz). The tag is derived from the
+        # file name and always re-extracted; the marker below records it, so a later normal run (whose newest
+        # published tag differs) fetches the published release instead of reusing this one.
+        [[ -f "${CUVS_RELEASE_TARBALL}" ]] || { echo "ERROR: CUVS_RELEASE_TARBALL=${CUVS_RELEASE_TARBALL} does not exist." >&2; exit 1; }
+        tag="$(basename "${CUVS_RELEASE_TARBALL}" .tar.gz)"; tag="v${tag#libcuvs-}"
+        [[ "${tag}" =~ ^v0\.[0-9]{8}\.[0-9]+-${variant}-${cuda_tag}$ ]] || { echo "ERROR: ${tag} does not look like a cuvs ${variant}-${cuda_tag} date-label package name." >&2; exit 1; }
+        tarball="${CUVS_RELEASE_TARBALL}"
+        echo "Using local, unpublished cuVS package: ${tarball} (${tag})"
+    else
     echo "Looking up zbrad/cuvs tuned-builds release for ${variant}-${cuda_tag}..."
-    local tag
     # Newest by date label, ranked as numbers (gpu_tuned_newest_release_tag); an older-form
     # v<ver>-<variant>-<cuda_tag>-g<sha> tag is only a loud fallback while no date-label release exists.
     tag="$(gh release list --repo zbrad/cuvs --limit 100 --json tagName -q '.[].tagName' 2>/dev/null \
@@ -60,17 +71,16 @@ resolve_cuvs_release() {
         exit 1
     fi
     echo "Found release: ${tag}"
+    dl_dir="$(mktemp -d)"
+    gh release download "${tag}" --repo zbrad/cuvs --pattern '*.tar.gz' --dir "${dl_dir}"
+    tarball="$(ls "${dl_dir}"/*.tar.gz | head -1)"
+    [[ -z "${tarball}" ]] && { echo "ERROR: release ${tag} has no .tar.gz asset." >&2; exit 1; }
+    fi
 
     rm -rf "${CUVS_RELEASE_DIR}"
     mkdir -p "${CUVS_RELEASE_DIR}"
-    local dl_dir
-    dl_dir="$(mktemp -d)"
-    gh release download "${tag}" --repo zbrad/cuvs --pattern '*.tar.gz' --dir "${dl_dir}"
-    local tarball
-    tarball="$(ls "${dl_dir}"/*.tar.gz | head -1)"
-    [[ -z "${tarball}" ]] && { echo "ERROR: release ${tag} has no .tar.gz asset." >&2; exit 1; }
     tar -xzf "${tarball}" -C "${CUVS_RELEASE_DIR}"
-    rm -rf "${dl_dir}"
+    [[ -z "${dl_dir}" ]] || rm -rf "${dl_dir}"
 
     if [[ ! -f "${CUVS_RELEASE_DIR}/lib/libcuvs-${variant}-${cuda_tag}.so" ]]; then
         echo "ERROR: extracted release ${tag} does not contain lib/libcuvs-${variant}-${cuda_tag}.so" >&2
