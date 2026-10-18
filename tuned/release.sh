@@ -23,12 +23,13 @@ source "${REPODIR}/tuned/env.sh" "${GPU_TUNED_ARG_VARIANT}" || exit 1
 cd "${REPODIR}"
 
 FAISS_LIB_NAME="faiss-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"
-DIST_DIR="$(gpu_tuned_cuda_subdir "${REPODIR}/dist" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
-OUTPUT_DIR="$(gpu_tuned_cuda_subdir "${REPODIR}/build_output" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
-BUILD_DIR="$(gpu_tuned_cuda_subdir "${REPODIR}/_build" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
+DIST_DIR="$(gpu_tuned_out_dir dist "${REPODIR}" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
+WHEEL_DIR="${GPU_TUNED_BUILD_ROOT}/wheel"
+RELEASES_DIR="$(gpu_tuned_out_dir releases "${REPODIR}" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
+BUILD_DIR="$(gpu_tuned_out_dir build "${REPODIR}" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
 INFO="${DIST_DIR}/package-info.txt"
-TEST_RESULTS_FILE="${OUTPUT_DIR}/TEST_RESULTS_${GPU_TUNED_VARIANT}.log"
-SMOKE_FILE="${OUTPUT_DIR}/SMOKE_RESULTS_${GPU_TUNED_VARIANT}.log"
+TEST_RESULTS_FILE="${RELEASES_DIR}/TEST_RESULTS_${GPU_TUNED_VARIANT}.log"
+SMOKE_FILE="${RELEASES_DIR}/SMOKE_RESULTS_${GPU_TUNED_VARIANT}.log"
 # The build-tree library is compared, not the staged one: package.sh rewrites the staged library (objcopy) on
 # every run, so its mtime would move past the test results and the gate would pass only once per test run.
 BUILT_LIB="${BUILD_DIR}/faiss/lib${FAISS_LIB_NAME}.so"
@@ -63,7 +64,7 @@ elif ! grep -q "Full test suite summary: pytest passed" "${TEST_RESULTS_FILE}"; 
     fail "${TEST_RESULTS_FILE} does not show a clean pass"
 else
     ok "full test suite passed, log newer than the built library"
-    mapfile -t WHEELS < <(find "${OUTPUT_DIR}" -maxdepth 1 -name 'faiss_*-py3-none-any.whl' -print)
+    mapfile -t WHEELS < <(find "${WHEEL_DIR}" -maxdepth 1 -name 'faiss_*-py3-none-any.whl' -print)
     for w in "${WHEELS[@]}"; do
         [[ "${w}" -nt "${TEST_RESULTS_FILE}" ]] && fail "${w} is newer than the test log; re-run tuned/full_test.sh ${GPU_TUNED_VARIANT}"
     done

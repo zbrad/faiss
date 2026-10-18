@@ -32,7 +32,7 @@ GPU_TUNED_ARG_VARIANT="$1"
 source "${REPODIR}/tuned/env.sh" "${GPU_TUNED_ARG_VARIANT}" || exit 1
 
 FAISS_LIB_NAME="faiss-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"
-STAGE_DIR="$(gpu_tuned_cuda_subdir "${REPODIR}/_libfaiss_stage" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
+STAGE_DIR="${GPU_TUNED_BUILD_ROOT}/stage"
 
 # Faiss's own version lives in CMakeLists.txt's project(... VERSION x.y.z),
 # not a standalone VERSION file (unlike raft/cuvs) -- extract it the same
@@ -77,7 +77,7 @@ RELEASE_TAG="$(gpu_tuned_native_tag "${GPU_TUNED_VARIANT}" "${FAISS_CUDA_TAG}" "
 # The staged tree is packaged as is, so it must come from the source at HEAD. The build does not stamp its commit,
 # so the reference is the commit the test log was run at (tuned/full_test.sh writes it, and release.sh requires that
 # log to be newer than the build): source outside tuned/ may differ between that commit and HEAD in nothing.
-TEST_LOG="$(gpu_tuned_cuda_subdir "${REPODIR}/build_output" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")/TEST_RESULTS_${GPU_TUNED_VARIANT}.log"
+TEST_LOG="$(gpu_tuned_out_dir releases "${REPODIR}" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")/TEST_RESULTS_${GPU_TUNED_VARIANT}.log"
 [[ -f "${TEST_LOG}" ]] || { echo "ERROR: ${TEST_LOG} not found; run tuned/full_test.sh ${GPU_TUNED_VARIANT} for ${FAISS_CUDA_TAG} before packaging." >&2; exit 1; }
 TESTED_COMMIT="$(sed -n 's/^commit: *//p' "${TEST_LOG}" | head -1)"
 git -C "${REPODIR}" cat-file -e "${TESTED_COMMIT}^{commit}" 2>/dev/null || { echo "ERROR: ${TEST_LOG} names commit '${TESTED_COMMIT}', which is not in this checkout." >&2; exit 1; }
@@ -94,7 +94,7 @@ echo "  tested at    : ${TESTED_COMMIT}; no source outside tuned/ changed since,
 # ships no CMake package, so there is nothing to configure against). Every faiss shared object
 # must name only the unique tuned rapids libraries, never a stock RAPIDS name, and the cuvs
 # release it was linked against must itself ship nvtx3 (the packaging fix that release carries).
-CUVS_RELEASE_DIR="${REPODIR}/tuned/_cuvs_release/${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"
+CUVS_RELEASE_DIR="${GPU_TUNED_BUILD_ROOT}/cuvs"
 STOCK_RE='^(librmm|librapids_logger|libkvikio|libcuvs_c)\.so(\.[0-9.]+)?$'
 command -v readelf >/dev/null || { echo "ERROR: readelf not found; cannot check DT_NEEDED." >&2; exit 1; }
 for so in "${STAGE_DIR}"/lib/libfaiss*.so; do
@@ -123,7 +123,7 @@ for _lib in "${INSTALLED_LIB}" "${STAGE_DIR}/lib/libfaiss_c-${GPU_TUNED_VARIANT}
 done
 unset _cuvs_dep _lib
 
-DIST_DIR="$(gpu_tuned_cuda_subdir "${REPODIR}/dist" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
+DIST_DIR="$(gpu_tuned_out_dir dist "${REPODIR}" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
 mkdir -p "${DIST_DIR}"
 rm -f "${DIST_DIR}/package-info.txt"
 PKG_NAME="faiss-${RELEASE_TAG#v}"

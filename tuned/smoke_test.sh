@@ -29,13 +29,14 @@ PYTHON="${PYTHON:-python3}"
 PYTHON="$(command -v "${PYTHON}")" || { echo "ERROR: Python interpreter not found; set PYTHON." >&2; exit 1; }
 TOOLKIT_LIB_DIR="${GPU_TUNED_TOOLKIT_LIB_DIR:-${CUDA_HOME}/lib64}"
 [[ -d "${TOOLKIT_LIB_DIR}" ]] || { echo "ERROR: toolkit lib dir ${TOOLKIT_LIB_DIR} not found." >&2; exit 1; }
-STAGE_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/_libfaiss_stage" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
-OUTPUT_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/build_output" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
-DIST_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/dist" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
-CUVS_RELEASE_DIR="${FAISS_ROOT}/tuned/_cuvs_release/${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"
-TEST_ENV_DIR="${OUTPUT_DIR}/test_env"
+STAGE_DIR="${GPU_TUNED_BUILD_ROOT}/stage"
+OUTPUT_DIR="$(gpu_tuned_out_dir releases "${FAISS_ROOT}" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
+DIST_DIR="$(gpu_tuned_out_dir dist "${FAISS_ROOT}" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
+CUVS_RELEASE_DIR="${GPU_TUNED_BUILD_ROOT}/cuvs"
+TEST_ENV_DIR="${GPU_TUNED_BUILD_ROOT}/test_env"
 INFO="${DIST_DIR}/package-info.txt"
 LOG="${OUTPUT_DIR}/SMOKE_RESULTS_${GPU_TUNED_VARIANT}.log"
+mkdir -p "${OUTPUT_DIR}"
 [[ -f "${INFO}" ]] || { echo "ERROR: ${INFO} not found. Run tuned/package.sh ${GPU_TUNED_VARIANT} first." >&2; exit 1; }
 [[ -d "${TEST_ENV_DIR}/faiss" && -d "${CUVS_RELEASE_DIR}/lib" ]] || { echo "ERROR: ${TEST_ENV_DIR}/faiss or ${CUVS_RELEASE_DIR}/lib missing; run tuned/full_test.sh ${GPU_TUNED_VARIANT} first." >&2; exit 1; }
 info() { sed -n "s/^$1=//p" "${INFO}"; }

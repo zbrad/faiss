@@ -7,7 +7,7 @@
 # tuned/wheel.sh <variant> — build the Python/SWIG bindings and package the
 # faiss-<variant>-<tag> wheel, for a single GPU variant (gb10/rtx40/rtx50).
 # Requires tuned/build.sh <variant> to have already staged libfaiss into
-# _libfaiss_stage_<variant>/.
+# tuned/build/<cuda>/stage/.
 #
 # Consolidates what used to be six separate scripts (build_pkg_gb10.sh,
 # build_pkg_rtx40.sh, build_pkg_rtx50.sh, package_wheel_gb10.sh,
@@ -27,9 +27,9 @@ PYTHON="$(command -v "$PYTHON")" || { echo "ERROR: Python interpreter '$PYTHON' 
 FAISS_ENABLE_CUVS="${FAISS_ENABLE_CUVS:-ON}"
 FAISS_VARIANT="${FAISS_VARIANT:-${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}}"
 PY_VER=$(${PYTHON} -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
-BUILD_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/_build_python" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")/${PY_VER}"
-BUILD_OUTPUT_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/build_output" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
-STAGE_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/_libfaiss_stage" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
+BUILD_DIR="${GPU_TUNED_BUILD_ROOT}/python/${PY_VER}"
+BUILD_OUTPUT_DIR="${GPU_TUNED_BUILD_ROOT}/wheel"
+STAGE_DIR="${GPU_TUNED_BUILD_ROOT}/stage"
 
 export PATH="$CUDA_HOME/bin:$PATH"
 export CPATH="$CUDA_HOME/include:$CPATH"
@@ -39,7 +39,7 @@ export CPATH="$CUDA_HOME/include:$CPATH"
 # GPU_TUNED_USES_LOCAL_CUVS/CUVS_REPO pointed at a local sibling checkout's
 # build dir, a layout build.sh stopped using when it moved to consuming
 # published cuvs releases; kept as a dead branch until now.
-CUVS_RELEASE_DIR="${FAISS_ROOT}/tuned/_cuvs_release/${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"
+CUVS_RELEASE_DIR="${GPU_TUNED_BUILD_ROOT}/cuvs"
 if [[ "${GPU_TUNED_BLAS}" == "openblas" ]]; then
     MKL_ROOT=""
 else

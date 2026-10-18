@@ -35,6 +35,7 @@ faiss/python/swigfaiss_sve.swig
 /_libfaiss_stage/
 /_build_python/
 /tuned/_cuvs_release/
+/tuned/build/
 
 # Python package build outputs
 /dist/

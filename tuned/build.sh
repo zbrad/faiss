@@ -26,12 +26,12 @@ set -e
 
 # resolve_cuvs_release <variant> <cuda_tag> — download + extract the
 # matching zbrad/cuvs tuned-builds release (see that repo's
-# tuned/package.sh) into tuned/_cuvs_release/<variant>-<cuda_tag>/, unless
+# tuned/package.sh) into tuned/build/<cuda_tag>/cuvs/, unless
 # already present there. Prints the extracted root on stdout via the
 # CUVS_RELEASE_DIR variable set in the caller's scope.
 resolve_cuvs_release() {
     local variant="$1" cuda_tag="$2"
-    CUVS_RELEASE_DIR="${FAISS_ROOT}/tuned/_cuvs_release/${variant}-${cuda_tag}"
+    CUVS_RELEASE_DIR="${GPU_TUNED_BUILD_ROOT}/cuvs"
 
     local tag tarball dl_dir=""
     if [[ -n "${CUVS_RELEASE_TARBALL:-}" ]]; then
@@ -108,8 +108,8 @@ PYTHON="${PYTHON:-python3}"
 PYTHON="$(command -v "$PYTHON")" || { echo "ERROR: Python interpreter '$PYTHON' not found on PATH. Set PYTHON to an absolute path." >&2; exit 1; }
 FAISS_ENABLE_CUVS="${FAISS_ENABLE_CUVS:-ON}"
 CUDA_ARCHS="${GPU_TUNED_CUDA_ARCH}-real"
-BUILD_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/_build" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
-STAGE_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/_libfaiss_stage" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
+BUILD_DIR="$(gpu_tuned_out_dir build "${FAISS_ROOT}" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")"
+STAGE_DIR="${GPU_TUNED_BUILD_ROOT}/stage"
 
 export PATH="$CUDA_HOME/bin:$PATH"
 

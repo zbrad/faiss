@@ -13,13 +13,13 @@
 #
 # Requires tuned/build.sh <variant> (staged libfaiss) and tuned/wheel.sh
 # <variant> (Python bindings) to have run for the same toolkit. The wheel is
-# unpacked into build_output/<cuda_tag>/<variant>/test_env/ and used through
+# unpacked into tuned/build/<cuda_tag>/test_env/ and used through
 # PYTHONPATH, so nothing is pip-installed and a stock or other-toolkit faiss
 # in site-packages cannot shadow the build under test. Before pytest starts,
 # the script imports faiss and checks which libfaiss/libcuvs files the process
 # actually mapped; it fails unless they are this toolkit's own.
 #
-# The results log is build_output/<cuda_tag>/<variant>/TEST_RESULTS_<variant>.log
+# The results log is tuned/build/<cuda_tag>/releases/TEST_RESULTS_<variant>.log
 # and ends with a "Full test suite summary" line.
 export PATH="${CONDA_PREFIX:+$CONDA_PREFIX/bin:}$HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
@@ -33,11 +33,12 @@ source "${FAISS_ROOT}/tuned/env.sh" "${GPU_TUNED_ARG_VARIANT}" || exit 1
 PYTHON="${PYTHON:-python3}"
 PYTHON="$(command -v "${PYTHON}")" || { echo "ERROR: Python interpreter '${PYTHON}' not found on PATH. Set PYTHON to an absolute path." >&2; exit 1; }
 
-STAGE_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/_libfaiss_stage" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")" || exit 1
-OUTPUT_DIR="$(gpu_tuned_cuda_subdir "${FAISS_ROOT}/build_output" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")" || exit 1
-CUVS_RELEASE_DIR="${FAISS_ROOT}/tuned/_cuvs_release/${GPU_TUNED_VARIANT}-${FAISS_CUDA_TAG}"
-TEST_ENV_DIR="${OUTPUT_DIR}/test_env"
-RESULTS_FILE="${OUTPUT_DIR}/TEST_RESULTS_${GPU_TUNED_VARIANT}.log"
+STAGE_DIR="${GPU_TUNED_BUILD_ROOT}/stage"
+OUTPUT_DIR="${GPU_TUNED_BUILD_ROOT}/wheel"
+CUVS_RELEASE_DIR="${GPU_TUNED_BUILD_ROOT}/cuvs"
+TEST_ENV_DIR="${GPU_TUNED_BUILD_ROOT}/test_env"
+RESULTS_FILE="$(gpu_tuned_out_dir releases "${FAISS_ROOT}" "${FAISS_CUDA_TAG}" "${GPU_TUNED_VARIANT}")/TEST_RESULTS_${GPU_TUNED_VARIANT}.log"
+mkdir -p "$(dirname "${RESULTS_FILE}")"
 
 [ -d "${STAGE_DIR}/lib" ] || { echo "ERROR: ${STAGE_DIR}/lib not found. Run tuned/build.sh ${GPU_TUNED_VARIANT} for ${FAISS_CUDA_TAG} first." >&2; exit 1; }
 [ -d "${CUVS_RELEASE_DIR}/lib" ] || { echo "ERROR: ${CUVS_RELEASE_DIR}/lib not found. Run tuned/build.sh ${GPU_TUNED_VARIANT} for ${FAISS_CUDA_TAG} first." >&2; exit 1; }

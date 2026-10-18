@@ -87,3 +87,16 @@ export GPU_TUNED_BLAS GPU_TUNED_OPENBLAS_LIB GPU_TUNED_MKL_ROOT GPU_TUNED_OPT_LE
 embed_build_info() {
     gpu_tuned_embed_build_info "$1" "$2" "$3" "$4" "$5" "https://github.com/zbrad/faiss"
 }
+
+# --- Output layout: one tree per toolkit, tuned/build/<cuda-tag>/ (gitignored), with no variant level
+#     (docs/ARCHITECTURE.md C2). cmake/ is the one fixed compile path; stage/ the staged libfaiss;
+#     cuvs/ the extracted cuvs release it links; python/<ver>/ the wheel's build tree; wheel/ the wheel;
+#     test_env/ the unpacked wheel under test; dist/ the tarball + sidecar + package-info.txt;
+#     releases/ the generated test and smoke logs (tracked RELEASE_NOTES_*.md stay in tuned/releases/).
+#     The claim refuses a tree last used by another variant. ---
+GPU_TUNED_REPO_ROOT="$(cd "${GPU_TUNED_SELF_DIR}/.." && pwd)"
+gpu_tuned_claim_toolkit_tree "${GPU_TUNED_REPO_ROOT}" "${CUDA_TAG}" "${GPU_TUNED_VARIANT}" || return 1 2>/dev/null || exit 1
+GPU_TUNED_BUILD_ROOT="${GPU_TUNED_REPO_ROOT}/tuned/build/${CUDA_TAG}"
+export CCACHE_DIR="${GPU_TUNED_BUILD_ROOT}/ccache"
+export CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-40G}"
+export GPU_TUNED_BUILD_ROOT
