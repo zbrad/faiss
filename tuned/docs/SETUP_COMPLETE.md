@@ -177,10 +177,15 @@ faiss/
 ├── conda/                             # Conda recipes
 │
 └── [BUILD ARTIFACTS - created during build]
-    ├── build_output/                 # Output wheels ← YOUR WHEEL HERE
-    ├── _build/                       # C++ build
-    ├── _build_python_*/              # Python build
-    └── _libfaiss_stage/              # Staged libraries
+    └── tuned/build/<cuda>/           # one tree per CUDA toolkit (gitignored)
+        ├── cmake/                    # C++ build
+        ├── stage/                    # staged install (lib/, include/)
+        ├── python/<ver>/             # wheel build tree
+        ├── wheel/                    # wheel ← YOUR WHEEL HERE (test run only)
+        ├── dist/                     # tarball, .sha256, package-info.txt
+        ├── releases/                 # test and smoke logs
+        ├── ccache/                   # compiler cache
+        └── cuvs/                     # extracted cuVS release
 ```
 
 ---
@@ -259,12 +264,12 @@ See [BUILD_arch_x86_64.md](BUILD_arch_x86_64.md) for more troubleshooting.
 
 After successful build, your wheel will be in:
 ```
-./build_output/faiss_gpu_cu132-*.whl
+./tuned/build/<cuda>/wheel/faiss_gpu_cu132-*.whl
 ```
 
 Install with:
 ```bash
-pip install ./build_output/faiss_gpu_cu132-*.whl
+pip install ./tuned/build/<cuda>/wheel/faiss_gpu_cu132-*.whl
 ```
 
 ---

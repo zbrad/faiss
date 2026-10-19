@@ -56,11 +56,11 @@ bash tuned/build.sh gb10
 bash tuned/wheel.sh gb10
 ```
 
-Output wheel lands in `build_output_gb10/` (and `build_output_gb10/repaired/`
-after `auditwheel`). Install and check:
+Output wheel lands in `tuned/build/<cuda>/wheel/` (`<cuda>` is the toolkit tag, e.g. `cu134`).
+Install and check:
 
 ```bash
-pip install build_output_gb10/repaired/faiss_gb10_cu132-*.whl
+pip install tuned/build/<cuda>/wheel/faiss_gb10_cu132-*.whl
 python -c "import faiss; print(faiss.__version__, faiss.get_num_gpus())"
 ```
 
@@ -94,9 +94,10 @@ On a host with multiple toolkits, `CUDA_HOME` auto-resolves to
 
 | Artifact | Location | Notes |
 |----------|----------|-------|
-| `libfaiss-gb10-cu132.so` | `_libfaiss_stage_gb10/lib/` | Main FAISS GPU library, SM 121 (`FAISS_OUTPUT_NAME`) |
-| `libfaiss_c-gb10-cu132.so` | `_libfaiss_stage_gb10/lib/` | C API wrapper (`FAISS_C_OUTPUT_NAME`) |
-| `faiss-gb10-cu132` wheel | `build_output_gb10/` | Single-arch wheel; `manylinux_*_aarch64` platform tag |
+| `libfaiss-gb10-cu132.so` | `tuned/build/<cuda>/stage/lib/` | Main FAISS GPU library, SM 121 (`FAISS_OUTPUT_NAME`) |
+| `libfaiss_c-gb10-cu132.so` | `tuned/build/<cuda>/stage/lib/` | C API wrapper (`FAISS_C_OUTPUT_NAME`) |
+| `faiss-gb10-cu132` wheel | `tuned/build/<cuda>/wheel/` | Single-arch wheel, built for the test run only (not published); `manylinux_*_aarch64` platform tag |
+| release tarball | `tuned/build/<cuda>/dist/` | Made by `tuned/package.sh`; see [../README.md](../README.md) for the flow |
 | links `libcuvs-gb10-cu132.so` | `zbrad/cuvs` build | SM 121 native cuVS |
 
 The `cu132` portion tracks `FAISS_CUDA_TAG`; see [WHEEL_NAMING.md](WHEEL_NAMING.md)
@@ -124,5 +125,5 @@ for the full version/naming scheme.
 ## Cleaning up
 
 ```bash
-bash tuned/clean.sh   # removes build dirs for all variants
+bash tuned/clean.sh   # removes cmake/, stage/, python/, test_env/ under each tuned/build/<cuda>/; keeps dist/, wheel/, releases/, ccache/, cuvs/
 ```

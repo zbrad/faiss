@@ -151,9 +151,9 @@ bash tuned/wheel.sh rtx50
 
 ### 3. Find the Built Wheel
 
-The wheel will be located in `build_output_rtx40/` (or `build_output_rtx50/`):
+The wheel will be located in `tuned/build/<cuda>/wheel/` (`<cuda>` is the toolkit tag, e.g. `cu134`):
 ```bash
-ls -lh build_output_rtx40/faiss_rtx40*.whl
+ls -lh tuned/build/<cuda>/wheel/faiss_rtx40*.whl
 ```
 
 ## Installation
@@ -161,7 +161,7 @@ ls -lh build_output_rtx40/faiss_rtx40*.whl
 To install the built wheel:
 
 ```bash
-pip install build_output_rtx40/faiss_rtx40-*.whl
+pip install tuned/build/<cuda>/wheel/faiss_rtx40-*.whl
 ```
 
 Verify installation:
@@ -229,6 +229,6 @@ python bench_*.py
 # Remove build files but keep wheel
 bash tuned/clean.sh
 
-# Remove everything including wheels
-rm -rf build/ _build* _libfaiss_stage* build_output*/
+# Remove everything including wheels and tarballs (one toolkit tree; repeat per <cuda>)
+rm -rf build/ tuned/build/<cuda>/
 ```

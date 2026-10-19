@@ -7,7 +7,13 @@ cd "$FAISS_ROOT"
 
 echo "Cleaning build artifacts..."
 
-# Remove build directories (rtx40/rtx50/gb10 variants, plus legacy generic ones)
+# Per-toolkit trees (tuned/build/<cuda>/, docs/ARCHITECTURE.md C2): remove the rebuildable parts only.
+# Kept: dist/ (tarballs), wheel/, releases/ (test and smoke logs), ccache/, cuvs/ (the extracted cuVS release).
+for d in "$FAISS_ROOT"/tuned/build/*/; do
+    rm -rf "$d/cmake" "$d/stage" "$d/python" "$d/test_env"
+done
+
+# Leftovers from the old layout (no tuned script writes these any more)
 rm -rf _build
 rm -rf _build_rtx40
 rm -rf _build_rtx50
@@ -29,4 +35,4 @@ find . -name "CMakeCache.txt" -delete
 find . -name "cmake_install.cmake" -delete
 
 echo "✓ Build artifacts cleaned"
-echo "Note: build_output/ directory with wheels is preserved"
+echo "Note: tuned/build/<cuda>/ dist, wheel, releases, ccache and cuvs are preserved"

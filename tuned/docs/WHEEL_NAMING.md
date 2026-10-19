@@ -152,8 +152,8 @@ variant-parameterized ones):
 |--------|---------|
 | `env.sh <variant>` | Sources `tuned/env.sh <variant>` and re-exports `CUDA_ARCHS`, `FAISS_VARIANT`, MKL paths for WSL-side sourcing |
 | `build.sh <variant>` | Sources `env.sh`, calls `tuned/build.sh <variant>` + `tuned/wheel.sh <variant>` directly |
-| `verify.sh <variant>` | Installs + smoke-tests (CPU and GPU) the built wheel from `build_output_<variant>/` |
-| `check_wheel.py [dir]` | Inspects a wheel's bundled `.so` files; defaults to `build_output_rtx40` |
+| `verify.sh <variant>` | Installs + smoke-tests (CPU and GPU) the built wheel from `build_output_<variant>/` (still the old path: not yet moved to `tuned/build/<cuda>/wheel/`) |
+| `check_wheel.py [dir]` | Inspects a wheel's bundled `.so` files; defaults to `build_output_rtx40` (old path, see `verify.sh`) |
 
 `FAISS_ROOT` is inferred from `env.sh`'s own location (no hardcoded
 drive-letter guess) -- override it explicitly if you're sourcing a copy of
@@ -205,7 +205,7 @@ Same layout as RTX 40, with `rtx50` in place of `rtx40`:
 |----------|------|-------|
 | Python wheel | `faiss-gb10-cu132` | `FAISS_VARIANT=gb10-cu132` in `setup.py` |
 | Built by | `tuned/build.sh gb10` + `tuned/wheel.sh gb10` | Consolidates the old lib -> pkg -> wheel steps |
-| Stage dir | `_libfaiss_stage_gb10/` | Mirrors `_libfaiss_stage_rtx40/` / `_libfaiss_stage_rtx50/` |
+| Stage dir | `tuned/build/<cuda>/stage/` | One tree per toolkit, no variant level (`tuned/env.sh`) |
 
 The `FAISS_OUTPUT_NAME` and `FAISS_C_OUTPUT_NAME` cmake variables are defined in
 `faiss/CMakeLists.txt` and `c_api/CMakeLists.txt` respectively and have no effect

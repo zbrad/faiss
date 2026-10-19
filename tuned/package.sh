@@ -90,8 +90,8 @@ if [[ -n "${STALE_SRC}" ]]; then
 fi
 echo "  tested at    : ${TESTED_COMMIT}; no source outside tuned/ changed since, packaging at ${SHORT_SHA}"
 
-# Library-name gates (the faiss equivalent of the consumer-configure gate raft and cuvs run: faiss
-# ships no CMake package, so there is nothing to configure against). Every faiss shared object
+# Library-name gates. faiss ships a CMake package (share/faiss/faiss-config.cmake in the tarball), but no gate
+# here configures a consumer against it (the D2 exception in tuned/compliance.conf records that). Every faiss shared object
 # must name only the unique tuned rapids libraries, never a stock RAPIDS name, and the cuvs
 # release it was linked against must itself ship nvtx3 (the packaging fix that release carries).
 CUVS_RELEASE_DIR="${GPU_TUNED_BUILD_ROOT}/cuvs"
@@ -149,6 +149,34 @@ cuda_tag=${FAISS_CUDA_TAG}
 variant=${GPU_TUNED_VARIANT}
 sha256=$(sha256sum "${TARBALL}" | awk '{print $1}')
 INFO
+
+# Draft release notes (docs/ARCHITECTURE.md H5), written only when the tracked notes file does not exist and never
+# over one. release.sh refuses the DRAFT banner, so the author reviews, deletes that line and commits.
+NOTES_FILE="${REPODIR}/tuned/releases/RELEASE_NOTES_${RELEASE_TAG#v}.md"
+if [[ -e "${NOTES_FILE}" ]]; then
+    echo "Release notes exist, not overwritten: ${NOTES_FILE}"
+else
+    _cuvs_tag="$(cat "${CUVS_RELEASE_DIR}/.release_tag" 2>/dev/null || echo 'not recorded')"
+    _suite="$(grep 'Full test suite summary' "${TEST_LOG}" | tail -n 1 | sed 's/^=* *//; s/ *=*$//' || true)"
+    cat > "${NOTES_FILE}" <<NOTES
+<!-- DRAFT — not yet published: review, then delete this line and commit -->
+# faiss ${FAISS_VERSION} — GB10 / DGX Spark (CUDA ${FAISS_CUDA_VER}) — ${RELEASE_TAG}
+
+**Package**: \`$(basename "${TARBALL}")\` · built at \`${SHORT_SHA}\` (tested at \`${TESTED_COMMIT:0:9}\`)
+
+**Built against cuVS**: \`${_cuvs_tag}\`
+
+## Tested
+
+- ${_suite:-Full test suite summary not found in ${TEST_LOG}}
+
+## What changed
+
+<!-- Author: describe what changed in this release. -->
+NOTES
+    unset _cuvs_tag _suite
+    echo "Draft release notes written (review, then commit): ${NOTES_FILE}"
+fi
 
 echo ""
 echo "Packaged (not published): ${TARBALL} (${RELEASE_TAG})"

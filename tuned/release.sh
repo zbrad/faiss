@@ -7,7 +7,7 @@
 # tuned/release.sh <variant> — publish the tarball tuned/package.sh made as a GitHub release, after the
 # gates. Same stage order as raft, cuvs and llama.cpp:
 #   tuned/build.sh -> tuned/wheel.sh -> tuned/full_test.sh -> tuned/package.sh -> tuned/smoke_test.sh
-#   -> (review and commit tuned/releases/RELEASE_NOTES_<label>_<variant>_<cuda>.md) -> this.
+#   -> (review and commit tuned/releases/RELEASE_NOTES_<label>.md) -> this.
 # It never builds, tests or packages. docs/ARCHITECTURE.md (tuned-common) lists every gate below.
 #
 # The release is named by the date label package.sh allocated (the native tag
