@@ -31,13 +31,13 @@ export LD_LIBRARY_PATH="${PREFIX}/lib:${CUVS_PREFIX}/lib:/usr/local/cuda-13.4/li
 | Component | Shipped file | Device code | Tests | Result |
 |---|---|---|---|---|
 | faiss 1.15 | `libfaiss-gb10-cu134.so`, `libfaiss_c-gb10-cu134.so` | yes (sm_121a) | pytest `tests/` minus `external_module_test.py` | 1,369 passed, 247 skipped, 800 subtests passed |
-| cuVS and chain (not shipped) | from cuVS `v0.20261019.0-gb10-cu134` | yes | used by the faiss tests and smoke | passed |
+| cuVS and chain (not shipped) | cuVS build `e47e60dd`, published as `v0.20261019.0-gb10-cu134` (stamp: `v0.20261018.0-gb10-cu134`) | yes | used by the faiss tests and smoke | passed |
 | Package as extracted | `faiss-0.20261019.0-gb10-cu134.tar.gz` | | smoke: `test_wheel_smoke_gpu`, `test_index`, `test_clustering` | 72 passed, 3 skipped, 8 subtests passed |
 
 ## This release
 
-`libfaiss-gb10-cu134.so` and `libfaiss_c-gb10-cu134.so` (device code: variant and toolkit), built in the flat per-toolkit tree against cuVS
-`v0.20261019.0-gb10-cu134`. The library names are unchanged from the earlier release; what changes is the cuVS chain underneath
+`libfaiss-gb10-cu134.so` and `libfaiss_c-gb10-cu134.so` (device code: variant and toolkit), built in the flat per-toolkit tree against the cuVS build at `e47e60dd`,
+published as `v0.20261019.0-gb10-cu134`. The build-info stamp inside `libfaiss-gb10-cu134.so` names that cuVS `v0.20261018.0-gb10-cu134`, the label the cuVS package carried before it was relabelled and published; the 20261018 name was never published and is the same cuVS build. The library names are unchanged from the earlier release; what changes is the cuVS chain underneath
 (`libcuvs-gb10-cu134.so`, `librmm-cu134.so`, `librapids_logger-cu134.so`, `libkvikio-cu134.so`). **Requires that cuVS release** (publish raft, then cuVS, first).
 
 **Supersedes** `v0.20261015.0-gb10-cu134`, which carries the earlier `-tuned` shared-object names and stays published for consumers that pin its URL.
