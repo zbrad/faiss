@@ -16,7 +16,8 @@ Stages run in this order; each gate in the later stages refuses to run on a stal
 | 3. package | `bash tuned/package.sh <variant>` | `tuned/build/<cuda>/dist/` tarball, `.sha256`, `package-info.txt`. Allocates the release label. Writes a DRAFT `tuned/releases/RELEASE_NOTES_<label>.md` if none exists |
 | 4. smoke test | `bash tuned/smoke_test.sh <variant>` | `tuned/build/<cuda>/releases/SMOKE_RESULTS_<variant>.log`, from the tarball as extracted |
 | 5. notes | edit `tuned/releases/RELEASE_NOTES_<label>.md`, delete its DRAFT line, commit it | a tracked, reviewed notes file |
-| 6. release | `bash tuned/release.sh <variant>` | Runs the gates, then publishes the GitHub release (tarball, sidecar, notes, test and smoke logs) |
+| 6. release | `bash tuned/release.sh <variant>` | Runs the gates only; never publishes. If all pass, writes `tuned/build/<cuda>/releases/RELEASE_READY_<variant>` (the ready-marker) |
+| 7. publish | `bash tuned/publish.sh <variant>` | Publishes the GitHub release (tarball, sidecar, notes, test and smoke logs) from the ready-marker only; refuses if HEAD, the notes or an asset changed since release.sh passed |
 
 `tuned/clean.sh` removes the rebuildable parts of each `tuned/build/<cuda>/` tree and the old-layout leftovers.
 It keeps `dist/`, `wheel/`, `releases/`, `ccache/` and `cuvs/`.

@@ -22,7 +22,8 @@
 #   bash tuned/build.sh gb10 && bash tuned/wheel.sh gb10 && bash tuned/full_test.sh gb10
 #   bash tuned/package.sh gb10    # packages only, writes package-info.txt
 #   bash tuned/smoke_test.sh gb10 # checks the tarball as extracted
-#   bash tuned/release.sh gb10    # publishes, after the gates
+#   bash tuned/release.sh gb10    # runs the gates only, writes the ready-marker
+#   bash tuned/publish.sh gb10    # publishes, from the ready-marker only
 set -euo pipefail
 
 REPODIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -180,4 +181,4 @@ fi
 
 echo ""
 echo "Packaged (not published): ${TARBALL} (${RELEASE_TAG})"
-echo "Next: bash tuned/smoke_test.sh ${GPU_TUNED_VARIANT}, then bash tuned/release.sh ${GPU_TUNED_VARIANT}"
+echo "Next: bash tuned/smoke_test.sh ${GPU_TUNED_VARIANT}, then bash tuned/release.sh ${GPU_TUNED_VARIANT}, then bash tuned/publish.sh ${GPU_TUNED_VARIANT}"
