@@ -60,7 +60,7 @@ SHA_FILE="${TARBALL}.sha256"
 echo "Release ${RELEASE_TAG} (faiss ${SHORT_VER}, packaged at ${PACKAGED_COMMIT}):"
 
 # Shared gates: tag label, clean tree, pushed HEAD, test log and build, tarball sha and sidecar, smoke log,
-# package-info.txt, packaged commit, release notes.
+# package-info.txt, packaged commit, release notes (refused while they still carry the DRAFT banner).
 gpu_tuned_release_gates \
     tag="${RELEASE_TAG}" variant="${GPU_TUNED_VARIANT}" cuda="${FAISS_CUDA_TAG}" info="${INFO}" \
     built="${BUILT_LIB}" test_log="${TEST_RESULTS_FILE}" test_pass="Full test suite summary: pytest passed" \
