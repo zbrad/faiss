@@ -30,6 +30,13 @@ cd "${FAISS_ROOT}" || exit 1
 # shellcheck source=env.sh
 source "${FAISS_ROOT}/tuned/env.sh" "${GPU_TUNED_ARG_VARIANT}" || exit 1
 
+# The toolkit's build venv, made by tuned/wheel.sh (swig, numpy, pytest ...): the tests run in it, not in the system python.
+[ -d "${GPU_TUNED_VENV_DIR}" ] || { echo "ERROR: ${GPU_TUNED_VENV_DIR} not found. Run tuned/wheel.sh ${GPU_TUNED_VARIANT} first." >&2; exit 1; }
+gpu_tuned_verify_venv "${GPU_TUNED_VENV_DIR}" "${FAISS_ROOT}" || exit 1
+gpu_tuned_check_venv_setuptools "${GPU_TUNED_VENV_DIR}" || exit 1
+# shellcheck source=/dev/null
+source "${GPU_TUNED_VENV_DIR}/bin/activate"
+
 PYTHON="${PYTHON:-python3}"
 PYTHON="$(command -v "${PYTHON}")" || { echo "ERROR: Python interpreter '${PYTHON}' not found on PATH. Set PYTHON to an absolute path." >&2; exit 1; }
 

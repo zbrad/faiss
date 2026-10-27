@@ -22,6 +22,15 @@ cd "$FAISS_ROOT"
 # shellcheck source=env.sh
 source "${FAISS_ROOT}/tuned/env.sh" "${GPU_TUNED_ARG_VARIANT}"
 
+# The toolkit's Python build venv (C9, tuned-common): created or reused (verified), activated, current setuptools. From
+# here python3, pip and swig are the venv's, so the bindings do not depend on the system interpreter or its packages.
+gpu_tuned_setup_build_venv "${GPU_TUNED_VENV_DIR}" "${FAISS_ROOT}" || exit 1
+pip install -r "${FAISS_ROOT}/tuned/requirements-build.txt"
+# The current setuptools, installed last so nothing above can hold it back (C8, tuned-common).
+gpu_tuned_install_setuptools || exit 1
+echo "Build venv packages (pin tuned/requirements-build.txt from this list):"
+pip freeze | sed 's/^/  /'
+
 PYTHON="${PYTHON:-python3}"
 PYTHON="$(command -v "$PYTHON")" || { echo "ERROR: Python interpreter '$PYTHON' not found on PATH. Set PYTHON to an absolute path." >&2; exit 1; }
 FAISS_ENABLE_CUVS="${FAISS_ENABLE_CUVS:-ON}"
@@ -60,8 +69,8 @@ echo ""
 
 echo "[1/4] Checking prerequisites..."
 ${PYTHON} -c "import sysconfig; print(sysconfig.get_path('include'))" &>/dev/null || { echo "ERROR: Python development headers not found." >&2; exit 1; }
-${PYTHON} -c "import numpy; print(numpy.__version__)" &>/dev/null || { echo "ERROR: numpy not found. Install with: pip install numpy" >&2; exit 1; }
-command -v swig &>/dev/null || { echo "ERROR: swig not found. Install with: conda install swig=4.0 or apt install swig" >&2; exit 1; }
+${PYTHON} -c "import numpy; print(numpy.__version__)" &>/dev/null || { echo "ERROR: numpy not found. it is in tuned/requirements-build.txt" >&2; exit 1; }
+command -v swig &>/dev/null || { echo "ERROR: swig not found in the build venv; it is in tuned/requirements-build.txt" >&2; exit 1; }
 [ -d "$STAGE_DIR" ] || { echo "ERROR: libfaiss not staged. Run tuned/build.sh ${GPU_TUNED_VARIANT} first." >&2; exit 1; }
 echo "✓ All prerequisites found"
 echo ""
@@ -164,6 +173,11 @@ else
     echo "  (auditwheel not found - skipping wheel repair)"
     repaired_wheel="$BUILD_OUTPUT_DIR/$wheel_basename"
 fi
+
+# Dependency gates (H9, H10; tuned-common): the build venv's setuptools, then the wheel's runtime dependencies.
+gpu_tuned_check_venv_setuptools "${GPU_TUNED_VENV_DIR}" || exit 1
+gpu_tuned_audit_deps "${repaired_wheel}" "${GPU_TUNED_BUILD_ROOT}/dependency-audit.log" \
+    || { echo "ERROR: dependency audit failed (see above and ${GPU_TUNED_BUILD_ROOT}/dependency-audit.log)." >&2; exit 1; }
 
 echo ""
 echo "========================================="
