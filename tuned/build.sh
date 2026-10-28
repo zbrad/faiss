@@ -455,6 +455,10 @@ if [[ "${GPU_TUNED_BLAS}" == "openblas" ]]; then
         fi
     done
     echo "OK: no faiss library needs a system BLAS, LAPACK or libgfortran, and none exports BLAS symbols"
+    # OpenBLAS is linked into the shipped libraries, so its (BSD 3-clause) license ships with them.
+    mkdir -p "${STAGE_DIR}/share/licenses/openblas"
+    cp -f "${GPU_TUNED_BUILD_ROOT}/openblas/LICENSE" "${STAGE_DIR}/share/licenses/openblas/LICENSE"
+    cp -f "${GPU_TUNED_BUILD_ROOT}/openblas/build-info.txt" "${STAGE_DIR}/share/licenses/openblas/BUILD_INFO.txt"
 fi
 
 echo ""
