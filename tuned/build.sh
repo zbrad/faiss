@@ -98,6 +98,12 @@ cd "$FAISS_ROOT"
 # shellcheck source=env.sh
 source "${FAISS_ROOT}/tuned/env.sh" "${GPU_TUNED_ARG_VARIANT}"
 
+# The toolkit's build venv (C9, tuned-common), activated for CMake 4: the cuVS and RMM CMake config files need 4.0 and
+# the host has 3.30. The library build itself is native; only these tools come from the venv.
+gpu_tuned_setup_build_venv "${GPU_TUNED_VENV_DIR}" "${FAISS_ROOT}" || exit 1
+pip install -r "${FAISS_ROOT}/tuned/requirements-build.txt" || exit 1
+gpu_tuned_install_setuptools || exit 1
+
 PYTHON="${PYTHON:-python3}"
 # Resolve to an absolute path: CMake's find_package(Python) can otherwise
 # resolve a bare "python3" differently than the shell just did (e.g. picking
@@ -256,17 +262,19 @@ if [[ "${GPU_TUNED_BLAS}" == "openblas" ]]; then
     LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
     export LD_LIBRARY_PATH
 
-    if [[ ! -f "$GPU_TUNED_OPENBLAS_LIB" ]]; then
-        echo "ERROR: OpenBLAS not found at $GPU_TUNED_OPENBLAS_LIB" >&2
-        echo "  Install with: apt-get install libopenblas-dev" >&2
-        exit 1
-    fi
-    echo "OpenBLAS library: $GPU_TUNED_OPENBLAS_LIB"
+    # BLAS and LAPACK come from a pinned OpenBLAS built from source and linked statically (no system library, no
+    # libgfortran); --exclude-libs keeps its symbols out of the shared objects' exports so they cannot interpose on
+    # another BLAS loaded in the same process.
+    bash "${FAISS_ROOT}/tuned/openblas_build.sh" "${GPU_TUNED_VARIANT}" || exit 1
+    OPENBLAS_STATIC="${GPU_TUNED_BUILD_ROOT}/openblas/lib/libopenblas.a"
+    echo "OpenBLAS library: ${OPENBLAS_STATIC}"
 
     CMAKE_ARGS+=(
         -DFAISS_ENABLE_MKL=OFF
-        -DBLAS_LIBRARIES="$GPU_TUNED_OPENBLAS_LIB"
-        -DLAPACK_LIBRARIES="$GPU_TUNED_OPENBLAS_LIB"
+        -DBLAS_LIBRARIES="${OPENBLAS_STATIC}"
+        -DLAPACK_LIBRARIES="${OPENBLAS_STATIC}"
+        -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--exclude-libs,ALL"
+        -DCMAKE_MODULE_LINKER_FLAGS="-Wl,--exclude-libs,ALL"
         -DCMAKE_PREFIX_PATH="${CUDA_HOME}${CUVS_PREFIX_PATH_EXTRA}"
         "${CUVS_DIR_ARGS[@]}"
     )
@@ -430,6 +438,23 @@ cmake --install "$BUILD_DIR" --prefix "${STAGE_DIR}/" --config Release
 if [[ "${GPU_TUNED_VARIANT}" != "gb10" ]]; then
     cp -f "$BUILD_DIR/faiss/libfaiss_avx512.so" "${STAGE_DIR}/lib/" 2>/dev/null || true
     cp -f "$BUILD_DIR/c_api/libfaiss_c_avx512.so" "${STAGE_DIR}/lib/" 2>/dev/null || true
+fi
+
+# GB10 links its BLAS and LAPACK statically: no shipped library may need a system BLAS, LAPACK or the Fortran runtime,
+# and none may export the BLAS symbols (they would interpose on another BLAS in the same process).
+if [[ "${GPU_TUNED_BLAS}" == "openblas" ]]; then
+    for so in "${STAGE_DIR}"/lib/libfaiss*.so; do
+        if readelf -d "${so}" | grep -E 'NEEDED.*\[(libopenblas|libblas|liblapack|libgfortran)' >/dev/null; then
+            echo "ERROR: ${so} needs a system BLAS, LAPACK or Fortran library:" >&2
+            readelf -d "${so}" | grep NEEDED >&2
+            exit 1
+        fi
+        if nm -D --defined-only "${so}" | grep -E ' (sgemm_|sgetrf_|ssyev_|dgemm_)$' >/dev/null; then
+            echo "ERROR: ${so} exports BLAS symbols; link OpenBLAS with --exclude-libs." >&2
+            exit 1
+        fi
+    done
+    echo "OK: no faiss library needs a system BLAS, LAPACK or libgfortran, and none exports BLAS symbols"
 fi
 
 echo ""

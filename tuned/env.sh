@@ -75,7 +75,7 @@ export FAISS_CUDA_VER="${CUDA_VER}" FAISS_CUDA_TAG="${CUDA_TAG}"
 # --- Repo-specific settings (BLAS, SIMD level, SWIG and make targets), loaded last; may not change
 #     any shared device/toolkit key. ---
 gpu_tuned_load_repo_env "${GPU_TUNED_SELF_DIR}/repo.env" || return 1 2>/dev/null || exit 1
-export GPU_TUNED_BLAS GPU_TUNED_OPENBLAS_LIB GPU_TUNED_MKL_ROOT GPU_TUNED_OPT_LEVEL \
+export GPU_TUNED_BLAS GPU_TUNED_OPENBLAS_TAG GPU_TUNED_OPENBLAS_SHA GPU_TUNED_OPENBLAS_TARGET GPU_TUNED_MKL_ROOT GPU_TUNED_OPT_LEVEL \
     GPU_TUNED_SWIG_TARGETS GPU_TUNED_MAKE_TARGETS
 
 # embed_build_info now comes from common.sh (gpu_tuned_embed_build_info) --

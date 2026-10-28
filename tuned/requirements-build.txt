@@ -15,3 +15,6 @@ pytest
 
 # setup.py bdist_wheel.
 wheel
+
+# The cuVS and RMM CMake config files in the packages we consume need CMake 4.0; the host has 3.30.
+cmake>=4.0
