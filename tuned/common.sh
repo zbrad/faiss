@@ -326,6 +326,7 @@ gpu_tuned_verify_toolkit() {
         echo "ERROR: gpu_tuned_verify_toolkit: ${CUDA_HOME}/bin/nvcc reports release '${found}', toolkit ${TOOLKIT_ID} declares ${TOOLKIT_NVCC_RELEASE}." >&2
         return 1
     fi
+    gpu_tuned_check_toolkit_path || return 1
     if [[ -n "${TOOLKIT_NCCL_VERSION:-}" && "${TOOLKIT_NCCL_VERSION}" != none ]]; then
         if ! command -v dpkg-query >/dev/null 2>&1; then
             echo "WARNING: gpu_tuned_verify_toolkit: dpkg-query not found; NCCL ${TOOLKIT_NCCL_VERSION} not checked." >&2
@@ -343,6 +344,46 @@ gpu_tuned_verify_toolkit() {
     else
         echo "OK: toolkit ${TOOLKIT_ID}: nvcc ${found} at ${CUDA_HOME}${TOOLKIT_NCCL_VERSION:+, libnccl2 ${TOOLKIT_NCCL_VERSION}}"
     fi
+}
+
+# gpu_tuned_check_toolkit_path -- the PATH gate for the selected toolkit (called by gpu_tuned_verify_toolkit; scripts that
+# rebuild PATH afterwards can call it again). The build's CUDA tools must be the ones under $CUDA_HOME, never whatever the
+# login shell or update-alternatives happens to put first (/usr/local/cuda/bin follows the alternatives link to the newest
+# toolkit). Fails when the first `nvcc` on PATH is not under $CUDA_HOME. Every other directory on PATH that holds an nvcc of a
+# different toolkit is listed as a warning (they are shadowed while $CUDA_HOME/bin is first, but a script that resets PATH
+# would pick one up); GPU_TUNED_STRICT_TOOLKIT_PATH=1 makes that a failure too. With such a warning it also prints where the
+# /usr/local/cuda (update-alternatives) link points when that is a different toolkit, as information only.
+gpu_tuned_check_toolkit_path() {
+    local home first dir real extra=() rc=0 alt
+    home="$(readlink -f "${CUDA_HOME:-/nonexistent}")" || return 1
+    first="$(command -v nvcc 2>/dev/null || true)"
+    if [[ -z "${first}" ]]; then
+        echo "ERROR: gpu_tuned_check_toolkit_path: no nvcc on PATH; expected ${CUDA_HOME}/bin first." >&2
+        return 1
+    fi
+    real="$(readlink -f "${first}")"
+    if [[ "${real}" != "${home}"/* ]]; then
+        echo "ERROR: gpu_tuned_check_toolkit_path: the first nvcc on PATH is ${first} (${real}), not under CUDA_HOME ${CUDA_HOME}." >&2
+        return 1
+    fi
+    local IFS=:
+    for dir in ${PATH}; do
+        [[ -n "${dir}" && -x "${dir}/nvcc" ]] || continue
+        real="$(readlink -f "${dir}/nvcc")"
+        [[ "${real}" == "${home}"/* ]] || extra+=("${dir} -> ${real}")
+    done
+    unset IFS
+    if [[ ${#extra[@]} -gt 0 ]]; then
+        printf 'WARNING: gpu_tuned_check_toolkit_path: PATH also holds an nvcc from another toolkit (shadowed by %s/bin): %s\n' \
+            "${CUDA_HOME}" "${extra[*]}" >&2
+        [[ "${GPU_TUNED_STRICT_TOOLKIT_PATH:-}" == 1 ]] && rc=1
+    fi
+    if [[ ${#extra[@]} -gt 0 ]]; then
+        alt="$(readlink -f /usr/local/cuda 2>/dev/null || true)"
+        [[ -z "${alt}" || "${alt}" == "${home}" ]] \
+            || echo "note: /usr/local/cuda (update-alternatives) points at ${alt}; this build uses ${CUDA_HOME}." >&2
+    fi
+    return "${rc}"
 }
 
 # gpu_tuned_verify_toolkit_libs <elf>... — resolves each file's libraries
@@ -1664,7 +1705,8 @@ gpu_tuned_verify_venv() {
             echo "ERROR: gpu_tuned_verify_venv: ${cmake_cache}'s CMAKE_HOME_DIRECTORY (${cached_home}) does not match this repo (${repo_root}) -- this build/ dir looks copied from another repo. Delete it: rm -rf ${repo_root}/build" >&2
             return 1
         fi
-    done < <(find "${repo_root}/build" -name 'CMakeCache.txt' 2>/dev/null || true)
+    # _deps: a FetchContent sub-build's cache names its own directory as the home directory, which is correct.
+    done < <(find "${repo_root}/build" -name 'CMakeCache.txt' -not -path '*/_deps/*' 2>/dev/null || true)
 
     return 0
 }
@@ -2833,10 +2875,12 @@ gpu_tuned_audit_deps() {
 import json, re, sys
 report, wheel = sys.argv[1], sys.argv[2]
 own = re.sub(r"[-_.]+", "-", wheel.rsplit("/", 1)[-1].split("-", 1)[0]).lower()
+others = 0
 for item in json.load(open(report))["install"]:
     meta = item["metadata"]
     if re.sub(r"[-_.]+", "-", meta["name"]).lower() == own:
         continue
+    others += 1
     if item.get("is_direct"):
         # A direct-URL dependency (our own tuned torch or flashinfer wheel) has a local version that is not on PyPI.
         sys.stderr.write(f'not audited (direct URL, not on PyPI): {meta["name"]}=={meta["version"]}\n')
@@ -2846,17 +2890,22 @@ for item in json.load(open(report))["install"]:
         sys.stderr.write(f'not audited (local wheel, not on PyPI): {meta["name"]}=={meta["version"]}\n')
         continue
     sys.stdout.write(f'{meta["name"]}=={meta["version"]}\n')
+if not others:
+    open(report + ".nodeps", "w").close()  # the wheel has no runtime dependencies: nothing to audit is a pass, not a failure
 PY
         fi
-        if [[ ${rc} -eq 0 ]]; then
+        if [[ ${rc} -eq 0 && -e "${work}/report.json.nodeps" ]]; then
+            echo "the wheel has no runtime dependencies; nothing to audit."
+            echo "RESULT: no vulnerable package has a fix available"
+        elif [[ ${rc} -eq 0 ]]; then
             [[ -s "${work}/reqs.txt" ]] || { echo "ERROR: the wheel resolved to no dependencies; the audit has nothing to check." >&2; rc=1; }
         fi
-        if [[ ${rc} -eq 0 ]]; then
+        if [[ ${rc} -eq 0 && ! -e "${work}/report.json.nodeps" ]]; then
             "${work}/venv/bin/pip-audit" --no-deps --disable-pip -r "${work}/reqs.txt" --format json \
                 > "${work}/audit.json" 2> "${work}/audit.err" || true
             [[ -s "${work}/audit.json" ]] || { sed 's/^/  /' "${work}/audit.err" >&2; echo "ERROR: pip-audit produced no result." >&2; rc=1; }
         fi
-        if [[ ${rc} -eq 0 ]]; then
+        if [[ ${rc} -eq 0 && ! -e "${work}/report.json.nodeps" ]]; then
             python3 -I - "${work}/audit.json" "${GPU_TUNED_AUDIT_ALLOW_FILE:-${here}/audit_allow.txt}" <<'PY' || rc=1
 import json, sys
 audit_path, allow_path = sys.argv[1], sys.argv[2]
