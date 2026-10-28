@@ -4,7 +4,7 @@ This guide builds a FAISS-GPU wheel for **aarch64** (ARM), targeting the NVIDIA
 DGX Spark — GB10 Grace Blackwell Superchip, compute capability **SM 121**.
 
 Unlike the RTX (x86_64) builds, ARM has **no Intel MKL**: this pipeline uses
-**OpenBLAS** for CPU BLAS and **NVIDIA cuVS** (the `libcuvs-gb10` build from
+a pinned **OpenBLAS** built from source and linked statically for CPU BLAS and LAPACK, and **NVIDIA cuVS** (the `libcuvs-gb10` build from
 [zbrad/cuvs](https://github.com/zbrad/cuvs)) for GPU acceleration. See
 [BUILD_rtx.md](BUILD_rtx.md) for the RTX 40 / RTX 50 (x86_64) builds.
 
@@ -13,7 +13,8 @@ Unlike the RTX (x86_64) builds, ARM has **no Intel MKL**: this pipeline uses
 - CUDA 13.2 toolkit for **aarch64 / sbsa-linux** (`/usr/local/cuda-13.2`, or set `CUDA_HOME`)
 - Python 3 with development headers, numpy, setuptools
 - Build tools: CMake (>=3.24.0), SWIG (4.0), make, a C++20 compiler
-- **OpenBLAS**: `sudo apt install libopenblas-dev` (default `/usr/lib/aarch64-linux-gnu/libopenblas.so`)
+- **OpenBLAS**: nothing to install. `tuned/openblas_build.sh` builds the version pinned in `tuned/repo.env` (static, PIC, OpenMP,
+  C LAPACK, `TARGET=NEOVERSEV2`) into `tuned/build/<cuda-tag>/openblas/`; `gfortran` is not needed.
 - **libcuvs-gb10** built for SM 121 (see next section)
 - 8GB+ free disk space
 
@@ -108,9 +109,9 @@ for the full version/naming scheme.
 **"libcuvs-gb10-*.so not found"**
 - Build it: `cd $CUVS_REPO && bash tuned/build.sh gb10`, or set `CUVS_DIR` to its location.
 
-**"OpenBLAS not found"**
-- Install: `sudo apt install libopenblas-dev`
-- Non-default path: `export OPENBLAS_LIB=/path/to/libopenblas.so`
+**OpenBLAS build or link fails**
+- `tuned/build/<cuda-tag>/openblas-src` is a clone of the pinned tag; the script refuses a checkout whose commit is not the pin.
+  Delete `tuned/build/<cuda-tag>/openblas` to rebuild it.
 
 **"CUDA not found" / version mismatch**
 - Ensure the aarch64 CUDA toolkit is installed; `ls $CUDA_HOME/bin/nvcc`

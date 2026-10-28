@@ -39,4 +39,6 @@ Layout and naming rules are in tuned-common's `docs/ARCHITECTURE.md`.
   activate that venv.
 - `wheel.sh` ends by checking the venv's setuptools (H10) and auditing the wheel's runtime dependencies (H9), logged to
   `tuned/build/<cuda-tag>/dependency-audit.log`.
-- The host needs `libopenblas-dev` (apt) for the native build.
+- GB10 BLAS and LAPACK are a pinned OpenBLAS built from source by `openblas_build.sh` and linked statically (`--exclude-libs`),
+  so nothing needs a system BLAS, LAPACK or `libgfortran`; `build.sh` fails if a shipped library does, or exports BLAS symbols.
+  OpenBLAS's license ships under `share/licenses/openblas/`.

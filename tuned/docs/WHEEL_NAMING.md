@@ -89,7 +89,7 @@ Two different "architectures" are in play and are encoded differently:
 |-------|--------------|-------------------------|--------------|
 | RTX 40 / Ada Lovelace (x86_64, SM 89) | `faiss-rtx40-cu132` | `…-manylinux2014_x86_64.whl` | Intel MKL, AVX2/AVX512 |
 | RTX 50 / Blackwell (x86_64, SM 120) | `faiss-rtx50-cu132` | `…-manylinux2014_x86_64.whl` | Intel MKL, AVX2/AVX512 |
-| GB10 / DGX Spark (aarch64, always SM 121) | `faiss-gb10-cu132` | `…-manylinux2014_aarch64.whl` | OpenBLAS + cuVS, SVE |
+| GB10 / DGX Spark (aarch64, always SM 121) | `faiss-gb10-cu132` | `…-manylinux2014_aarch64.whl` | static OpenBLAS + cuVS, SVE |
 
 You install the codename matching your GPU explicitly, e.g.
 `pip install faiss-rtx40-cu132`.

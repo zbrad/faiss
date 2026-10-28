@@ -36,7 +36,7 @@ Standard FAISS usage is unaffected; none of this builds unless invoked.
 | | x86_64 | aarch64 / DGX Spark |
 |---|---|---|
 | Scripts | `*_x86_64.sh` | `*_aarch64.sh` |
-| BLAS / accel | Intel MKL, AVX2/AVX512 | OpenBLAS + cuVS, SVE |
+| BLAS / accel | Intel MKL, AVX2/AVX512 | static OpenBLAS + cuVS, SVE |
 | GPU arch | 75–120 (multi) | SM 121 only |
 | C++ libs | `libfaiss-x86_64-${TAG}.so` | `libfaiss-aarch64-${TAG}.so` |
 
