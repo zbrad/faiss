@@ -165,7 +165,6 @@ if command -v auditwheel &>/dev/null; then
         --exclude libcudart.so.13 \
         --exclude libcublas.so.13 \
         --exclude libcublasLt.so.13 \
-        --exclude libopenblas.so.0 \
         -w "$BUILD_OUTPUT_DIR/repaired/" 2>&1 | grep -E "INFO|WARNING|ERROR|Fixed"
     repaired_wheel=$(find "$BUILD_OUTPUT_DIR/repaired/" -name "*.whl" | head -1)
     wheel_basename=$(basename "$repaired_wheel")
