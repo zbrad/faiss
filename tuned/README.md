@@ -30,3 +30,13 @@ It keeps `dist/`, `wheel/`, `releases/`, `ccache/` and `cuvs/`.
 - `compliance.conf` (when tracked): read by tuned-common's `tools/tuned_compliance.sh`.
 
 Layout and naming rules are in tuned-common's `docs/ARCHITECTURE.md`.
+
+## Build venv and gates (Python bindings)
+
+- `build.sh` builds `libfaiss` natively, outside any venv. `wheel.sh` makes the venv `tuned/build/<cuda-tag>/venv`
+  (`gpu_tuned_setup_build_venv`; `GPU_TUNED_CLEAN_VENV=1` recreates it), installs `tuned/requirements-build.txt` (swig,
+  numpy, scipy, pytest, wheel) and the current setuptools (at least 84.2, C8). `full_test.sh` and `smoke_test.sh` require and
+  activate that venv.
+- `wheel.sh` ends by checking the venv's setuptools (H10) and auditing the wheel's runtime dependencies (H9), logged to
+  `tuned/build/<cuda-tag>/dependency-audit.log`.
+- The host needs `libopenblas-dev` (apt) for the native build.
