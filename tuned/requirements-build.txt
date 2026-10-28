@@ -1,6 +1,7 @@
 # Python packages the faiss Python wheel build and its tests need, installed into the toolkit's build venv
 # (tuned/build/<cuda-tag>/venv) by tuned/wheel.sh. Before this file they came from whatever the system python3 held.
-# Unpinned except swig until the first build records what resolves: wheel.sh prints `pip freeze`, so pin from that log.
+# The versions are locked in requirements-build.lock (gpu_tuned_freeze_requirements) and installed under it; to change them
+# build with GPU_TUNED_UNLOCKED=1 and freeze again.
 
 # SWIG generates the Python bindings. 4.2.0 is the version the build host's system swig was (apt, 4.2.0); the old
 # prerequisite message asked for conda's swig=4.0, so this is a deliberate match to what actually built, not to the message.

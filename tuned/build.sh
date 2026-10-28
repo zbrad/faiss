@@ -101,7 +101,7 @@ source "${FAISS_ROOT}/tuned/env.sh" "${GPU_TUNED_ARG_VARIANT}"
 # The toolkit's build venv (C9, tuned-common), activated for CMake 4: the cuVS and RMM CMake config files need 4.0 and
 # the host has 3.30. The library build itself is native; only these tools come from the venv.
 gpu_tuned_setup_build_venv "${GPU_TUNED_VENV_DIR}" "${FAISS_ROOT}" || exit 1
-pip install -r "${FAISS_ROOT}/tuned/requirements-build.txt" || exit 1
+gpu_tuned_pip_install_requirements "${FAISS_ROOT}/tuned/requirements-build.txt" || exit 1
 gpu_tuned_install_setuptools || exit 1
 
 PYTHON="${PYTHON:-python3}"

@@ -1,0 +1,13 @@
+# Locked by gpu_tuned_freeze_requirements from the build venv that passed, for requirements-build.txt.
+# Python 3.14.6, aarch64.
+# Regenerate: build once with GPU_TUNED_UNLOCKED=1, run gpu_tuned_freeze_requirements, review the diff.
+cmake==4.4.4
+iniconfig==2.3.1
+numpy==2.5.4
+packaging==26.3
+pluggy==1.7.0
+Pygments==2.21.0
+pytest==9.2.0
+scipy==1.18.1
+swig==4.2.0
+wheel==0.48.0

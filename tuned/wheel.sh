@@ -25,10 +25,10 @@ source "${FAISS_ROOT}/tuned/env.sh" "${GPU_TUNED_ARG_VARIANT}"
 # The toolkit's Python build venv (C9, tuned-common): created or reused (verified), activated, current setuptools. From
 # here python3, pip and swig are the venv's, so the bindings do not depend on the system interpreter or its packages.
 gpu_tuned_setup_build_venv "${GPU_TUNED_VENV_DIR}" "${FAISS_ROOT}" || exit 1
-pip install -r "${FAISS_ROOT}/tuned/requirements-build.txt"
+gpu_tuned_pip_install_requirements "${FAISS_ROOT}/tuned/requirements-build.txt" || exit 1
 # The current setuptools, installed last so nothing above can hold it back (C8, tuned-common).
 gpu_tuned_install_setuptools || exit 1
-echo "Build venv packages (pin tuned/requirements-build.txt from this list):"
+echo "Build venv packages:"
 pip freeze | sed 's/^/  /'
 
 PYTHON="${PYTHON:-python3}"
